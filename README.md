@@ -1,6 +1,6 @@
 # Wault Finance Yield Optimizer
 
-# Entry Points
+## Entry Points
 
 - [ ] BUSD
 
