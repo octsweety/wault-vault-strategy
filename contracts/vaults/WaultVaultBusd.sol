@@ -10,20 +10,27 @@ import "../libraries/ERC20.sol";
 
 import "hardhat/console.sol";
 
-contract pVault is ERC20, IVault {
+contract WaultValutBusd is ERC20, IVault {
     using SafeERC20 for IERC20;
+    using Address for address;
+    using SafeMath for uint256;
 
     IERC20 public token;
 
+    uint256 public min = 10000;
+    uint256 public constant max = 10000;
+
+    address public governance;
     address public controller;
 
     constructor(address _token, address _controller) 
         ERC20(
-            string(abi.encodePacked("planu ", ERC20(_token).name())),
-            string(abi.encodePacked("p", ERC20(_token).symbol()))
+            string(abi.encodePacked("Wault ", ERC20(_token).name())),
+            string(abi.encodePacked("wault", ERC20(_token).symbol()))
         )
     {
         token = IERC20(_token);
+        governance = msg.sender;
         controller = _controller;
     }
 
@@ -31,12 +38,27 @@ contract pVault is ERC20, IVault {
         return token.balanceOf(address(this)) + IController(controller).balanceOf(address(token));
     }
 
+    function setMin(uint256 _min) external {
+        require(msg.sender == governance, "!governance");
+        min = _min;
+    }
+    
+    function setGovernance(address _governance) public {
+        require(msg.sender == governance, "!governance");
+        governance = _governance;
+    }
+
+    function setController(address _controller) public {
+        require(msg.sender == governance, "!governance");
+        controller = _controller;
+    }
+
     function available() public view returns (uint) {
         return token.balanceOf(address(this));
     }
 
     function getPricePerFullShare() public override view returns (uint) {
-        return (balance() * 1e18) / totalSupply();
+        return balance().mul(1e18).div(totalSupply());
     }
 
     function invest() internal {
@@ -48,20 +70,17 @@ contract pVault is ERC20, IVault {
     }
 
     function deposit(uint256 _amount) public override {
-        uint256 pool = balance();
+        uint256 _pool = balance();
         uint256 _before = token.balanceOf(address(this));
         token.safeTransferFrom(msg.sender, address(this), _amount);
         uint256 _after = token.balanceOf(address(this));
-        
-        uint256 amount = _after - _before;
+        _amount = _after.sub(_before); // Additional check for deflationary tokens
         uint256 shares = 0;
-
         if (totalSupply() == 0) {
-            shares = amount;
+            shares = _amount;
         } else {
-            shares = (amount * totalSupply()) / pool; // (amount / (pool / totalSupply))
+            shares = (_amount.mul(totalSupply())).div(_pool);
         }
-
         _mint(msg.sender, shares);
         invest();
     }
@@ -71,18 +90,22 @@ contract pVault is ERC20, IVault {
     }
 
     function withdraw(uint256 _shares) public override {
-        uint256 claimAmount = _shares * balance() / totalSupply();
-    
+        uint256 _send = (balance().mul(_shares)).div(totalSupply());
         _burn(msg.sender, _shares);
 
-        uint256 currentBalance = token.balanceOf(address(this));
-
-        if (currentBalance < claimAmount) {
-            IController(controller).withdraw(address(token), claimAmount - currentBalance);
+        // Check balance
+        uint256 _before = token.balanceOf(address(this));
+        if (_before < _send) {
+            uint256 _withdraw = _send.sub(_before);
+            IController(controller).withdraw(address(token), _withdraw);
+            uint256 _after = token.balanceOf(address(this));
+            uint256 _diff = _after.sub(_before);
+            if (_diff < _withdraw) {
+                _send = _before.add(_diff);
+            }
         }
 
-        token.safeTransfer(msg.sender, claimAmount);
-        invest();
+        token.safeTransfer(msg.sender, _send);
     }
 
     function withdrawAll() external override {
