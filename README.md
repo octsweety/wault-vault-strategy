@@ -2,11 +2,11 @@
 
 # Entry Points
 
-- [] BUSD
+- [ ] BUSD
 
 ## Support Lending Platforms
 
-- [] Venus
+- [ ] Venus
 
 ## Binance Smart Chain Testnet
 
