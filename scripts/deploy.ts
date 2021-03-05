@@ -1,11 +1,10 @@
 import * as hre from 'hardhat';
 import { Controller } from '../types/ethers-contracts/Controller';
 import { Controller__factory } from '../types/ethers-contracts/factories/Controller__factory';
-import { PVault } from '../types/ethers-contracts/PVault';
-import { PVault__factory } from '../types/ethers-contracts/factories/PVault__factory';
+import { WaultBusdVault } from '../types/ethers-contracts/WaultBusdVault';
+import { WaultBusdVault__factory } from '../types/ethers-contracts/factories/WaultBusdVault__factory';
 import { StrategyVenusBusd } from '../types/ethers-contracts/StrategyVenusBusd';
 import { StrategyVenusBusd__factory } from '../types/ethers-contracts/factories/StrategyVenusBusd__factory';
-import { ERC20 } from '../types/ethers-contracts/ERC20';
 import { ERC20__factory } from '../types/ethers-contracts/factories/ERC20__factory';
 
 const { ethers } = hre;
@@ -18,11 +17,12 @@ async function deploy() {
         deployer.address
     );
 
+    const marketerAddress = '0xC627D743B1BfF30f853AE218396e6d47a4f34ceA';
     const beforeBalance = await deployer.getBalance();
     console.log("Account balance:", (await deployer.getBalance()).toString());
 
     const controllerFactory: Controller__factory = new Controller__factory(deployer);
-    const controller: Controller = await controllerFactory.deploy();
+    const controller: Controller = await controllerFactory.deploy(marketerAddress);
 
     console.log("Controller address:", controller.address);
 
@@ -34,10 +34,10 @@ async function deploy() {
     // const busd = await busdFactory.deploy("Binance USD", "BUSD");
     // busd.mint(deployer.address, ethers.BigNumber.from('1000000000000000000'));
 
-    const pVaultFactory: PVault__factory = new PVault__factory(deployer);
-    const pBUSD: PVault = await pVaultFactory.deploy(busd.address, controller.address);
+    const WaultBusdVaultFactory: WaultBusdVault__factory = new WaultBusdVault__factory(deployer);
+    const wBUSD: WaultBusdVault = await WaultBusdVaultFactory.deploy(busd.address, controller.address);
     
-    console.log("pBUSD address:", pBUSD.address);
+    console.log("waultBUSD address:", wBUSD.address);
 
     const strategyVenusFactory: StrategyVenusBusd__factory = new StrategyVenusBusd__factory(deployer);
     const strategyVenus: StrategyVenusBusd = await strategyVenusFactory.deploy(controller.address);
@@ -45,7 +45,7 @@ async function deploy() {
     console.log("StrategyVenus address:", strategyVenus.address);
 
     // initialize
-    await controller.setVault(busd.address, pBUSD.address);
+    await controller.setVault(busd.address, wBUSD.address);
     await controller.setStrategy(busd.address, strategyVenus.address);
 
     // await busd.approve(pBUSD.address, ethers.BigNumber.from('1000000000000000000'));

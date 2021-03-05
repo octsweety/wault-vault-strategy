@@ -32,7 +32,7 @@ contract StrategyStorage {
     }
 
     modifier onlyGovernance {
-        require(msg.sender == controller, "!governance");
+        require(msg.sender == governance, "!governance");
         _;
     }
 

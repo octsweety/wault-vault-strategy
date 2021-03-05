@@ -10,7 +10,7 @@ import "../libraries/ERC20.sol";
 
 import "hardhat/console.sol";
 
-contract WaultValutBusd is ERC20, IVault {
+contract WaultBusdVault is ERC20, IVault {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
