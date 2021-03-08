@@ -23,11 +23,13 @@ contract StrategyVenus is StrategyStorage, IStrategy {
     // testnet
     address internal constant _xvs = address(0xB9e0E753630434d7863528cc73CB7AC638a7c8ff);
     address internal constant _wbnb = address(0x094616F0BdFB0b526bD735Bf66Eca0Ad254ca81F);
+    address internal constant _wault = address(0x6Ff2d9e5891a7a7c554b80e0D1B791483C78BcE9);
     address internal constant venusComptroller = address(0x94d1820b2D1c7c7452A163983Dc888CEC546b77D);
     address internal constant uniswapRouter = address(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
     // mainnet
     // address internal constant _xvs = address(0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63);
     // address internal constant _wbnb = address(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c);
+    // address internal constant _wault = address(0x6Ff2d9e5891a7a7c554b80e0D1B791483C78BcE9);
     // address internal constant venusComptroller = address(0xfD36E2c2a6789Db23113685031d7F16329158384);
     // address internal constant uniswapRouter = address(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
 
@@ -81,7 +83,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
       uint256 _currentL = _y.mul(1e18).div(_x);
       uint256 _liquidityAvailable = VBep20Interface(_vToken).getCash();
 
-      if(_currentL < _L && _L.sub(_currentL) > targetBorrowLimitHysteresis) {
+      if(_currentL < _L && _L.sub(_currentL) > targetBorrowUnit) {
         uint256 _dy = _L.mul(_x).div(1e18).sub(_y).mul(1e18).div(uint256(1e18).sub(_L));
         uint256 _max_dy = _ox.mul(_c).div(1e18).sub(_y);
         if(_dy > _max_dy) _dy = _max_dy;
@@ -89,7 +91,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
         VBep20Interface(_vToken).borrow(_dy);
         _supplyWant();
       } else {
-        while(_currentL > _L && _currentL.sub(_L) > targetBorrowLimitHysteresis) {
+        while(_currentL > _L && _currentL.sub(_L) > targetBorrowUnit) {
           uint256 _dy = _y.sub(_L.mul(_x).div(1e18)).mul(1e18).div(uint256(1e18).sub(_L));
           uint256 _max_dy = _ox.sub(_y.mul(1e18).div(_c));
           if(_dy > _max_dy) _dy = _max_dy;
@@ -114,7 +116,8 @@ contract StrategyVenus is StrategyStorage, IStrategy {
 
     function harvest() external override returns (uint256) {
         // require(msg.sender == strategist || msg.sender == governance, "!authorized");
-        require(msg.sender == tx.origin, "!enduser");
+        // It would be a cron daemon in backend
+        require(msg.sender == harvester, "!harvester");
 
         _claimXvs();
 
@@ -147,6 +150,37 @@ contract StrategyVenus is StrategyStorage, IStrategy {
         _sendToVaultWithFee(_want, amount);
     }
 
+    function withdraw(address recipient, uint256 amount) external override {
+        require(msg.sender == controller, "!controller");
+        require(recipient != address(0), "!valid address");
+
+        uint256 _balance = IERC20(_want).balanceOf(address(this));
+        if (_balance < amount) {
+            amount = _withdrawSome(amount.sub(_balance));
+            amount = amount.add(_balance);
+        }
+        _sendToWalletWithFee(_want, recipient, amount);
+    }
+
+    function withdrawAsWault(address recipient, uint256 amount) external override returns (uint256 _out) {
+        require(msg.sender == controller, "!controller");
+        require(recipient != address(0), "!valid address");
+
+        uint256 _balance = IERC20(_want).balanceOf(address(this));
+        if (_balance < amount) {
+            amount = _withdrawSome(amount.sub(_balance));
+            amount = amount.add(_balance);
+        }
+
+        uint256 _fee = amount.mul(_withdrawalFee).div(FEE_DENOMINATOR);
+        address[] memory swapPath = new address[](3);
+        swapPath[0] = _want;
+        swapPath[1] = _wbnb;
+        swapPath[2] =_wault;
+        _out = IUniswapRouter(uniswapRouter).swapExactTokensForTokens(amount.sub(_fee), uint256(0), swapPath, recipient, block.timestamp.add(1800))[2];
+        IERC20(_want).safeTransfer(IController(controller).rewards(), _fee);
+    }
+
     function _withdrawSome(uint256 _amount) internal returns (uint256) {
       _rebalance(_amount);
       uint _balance = VBep20Interface(_vToken).balanceOfUnderlying(address(this));
@@ -166,7 +200,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
 
     function _withdrawAll() internal {
        targetBorrowLimit = 0;
-       targetBorrowLimitHysteresis = 0;
+       targetBorrowUnit = 0;
        _rebalance(0);
        require(VBep20Interface(_vToken).redeem(VBep20Interface(_vToken).balanceOf(address(this))) == 0, "_withdrawAll: redeem failed");      
     }

@@ -13,6 +13,7 @@ contract StrategyStorage {
     address public controller;
     address public governance;
     address public strategist;
+    address public harvester;
     
     uint256 public _performanceFee = 450;
     uint256 public _strategistReward = 50;
@@ -22,7 +23,7 @@ contract StrategyStorage {
     uint256 public constant FEE_DENOMINATOR = 10000;
 
     uint256 public targetBorrowLimit;
-    uint256 public targetBorrowLimitHysteresis;
+    uint256 public targetBorrowUnit;
 
     bool public paused;
 
@@ -48,6 +49,10 @@ contract StrategyStorage {
         strategist = _strategist;
     }
 
+    function setHarvester(address _harvester) external onlyGovernance {
+        harvester = _harvester;
+    }
+
     function setPerformanceFee(uint256 performanceFee) external onlyGovernance {
         require(msg.sender == governance, "!governance");
         _performanceFee = performanceFee;
@@ -68,10 +73,10 @@ contract StrategyStorage {
         _harvesterReward = harvesterReward;
     }
 
-    function setTargetBorrowLimit(uint256 _targetBorrowLimit, uint256 _targetBorrowLimitHysteresis) external {
+    function setTargetBorrowLimit(uint256 _targetBorrowLimit, uint256 _targetBorrowUnit) external {
         require(msg.sender == strategist || msg.sender == governance, "!authorized");
         targetBorrowLimit = _targetBorrowLimit;
-        targetBorrowLimitHysteresis = _targetBorrowLimitHysteresis;
+        targetBorrowUnit = _targetBorrowUnit;
     }
 
     function vaults(address underlying) public view returns (address) {
@@ -89,9 +94,15 @@ contract StrategyStorage {
         _sendToVault(underlying, amount.sub(_fee));
     }
 
-    function _sendToVault(address underlying, uint amount) internal {
+    function _sendToVault(address underlying, uint256 amount) internal {
         address vault = vaults(underlying);
         require(vault != address(0), "Not a vault!");
         IERC20(underlying).safeTransfer(vault, amount);
+    }
+    function _sendToWalletWithFee(address underlying, address recipient, uint256 amount) internal {
+        uint256 _fee = getFee(amount);
+        require(recipient != address(0), "Not a vault!");
+        IERC20(underlying).safeTransfer(recipient, amount.sub(_fee));
+        IERC20(underlying).safeTransfer(IController(controller).rewards(), _fee);
     }
 }

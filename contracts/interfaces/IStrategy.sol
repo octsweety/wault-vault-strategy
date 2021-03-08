@@ -9,8 +9,13 @@ interface IStrategy {
     // Controller | Vault role - withdraw should always return to Vault
     function withdraw(uint256) external;
 
+    // Controller role - withdraw should always return to recipient wallet directly
+    function withdraw(address, uint256) external;
+
     // Controller | Vault role - withdraw should always return to Vault
     function withdrawAll() external returns (uint256);
+
+    function withdrawAsWault(address, uint256) external returns (uint256);
 
     function harvest() external returns (uint256);
 

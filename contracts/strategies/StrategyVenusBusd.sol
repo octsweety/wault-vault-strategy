@@ -17,13 +17,17 @@ contract StrategyVenusBusd is StrategyVenus {
         // _vToken = address(0x95c78222B3D6e262426483D42CfA53685A67Ab9D);
 
         controller = _controller;
+        strategist = msg.sender;
+        governance = msg.sender;
+        harvester = msg.sender;
+
 
         xvsToWantPath = [_xvs, _wbnb, _want];
 
         uint256 borrowLimit = 5900;
-        uint256 borrowLimitHysteresis = 500;
+        uint256 borrowLimitUnit = 500;
         targetBorrowLimit = (borrowLimit).div(10000).mul(1e18);
-        targetBorrowLimitHysteresis = (borrowLimitHysteresis).div(10000).mul(1e18);
+        targetBorrowUnit = (borrowLimitUnit).div(10000).mul(1e18);
 
         address[] memory _markets = new address[](1);
         _markets[0] = _vToken;
