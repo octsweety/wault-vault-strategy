@@ -21,6 +21,7 @@ contract StrategyStorage {
     uint256 public _harvesterReward = 30;
     uint256 internal _withdrawalMax = 10000;
     uint256 public constant FEE_DENOMINATOR = 10000;
+    uint256 public blocksPerMin = 20;
 
     uint256 public targetBorrowLimit;
     uint256 public targetBorrowUnit;
@@ -77,6 +78,10 @@ contract StrategyStorage {
         require(msg.sender == strategist || msg.sender == governance, "!authorized");
         targetBorrowLimit = _targetBorrowLimit;
         targetBorrowUnit = _targetBorrowUnit;
+    }
+
+    function setBlocksPerMin(uint256 _blocks) external onlyGovernance {
+        blocksPerMin = _blocks;
     }
 
     function vaults(address underlying) public view returns (address) {

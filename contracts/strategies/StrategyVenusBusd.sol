@@ -24,10 +24,8 @@ contract StrategyVenusBusd is StrategyVenus {
 
         xvsToWantPath = [_xvs, _wbnb, _want];
 
-        uint256 borrowLimit = 5900;
-        uint256 borrowLimitUnit = 500;
-        targetBorrowLimit = (borrowLimit).div(10000).mul(1e18);
-        targetBorrowUnit = (borrowLimitUnit).div(10000).mul(1e18);
+        targetBorrowLimit = uint256(5900).mul(1e14);
+        targetBorrowUnit = uint256(500).mul(1e14);
 
         address[] memory _markets = new address[](1);
         _markets[0] = _vToken;

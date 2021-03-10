@@ -25,6 +25,24 @@ interface IStrategy {
     
     function supplyRatePerBlock() external view returns (uint256);
 
+    function borrowRatePerBlock() external view returns (uint256);
+
+    function supplyXvsRatePerBlock() external returns (uint256);
+    
+    function borrowXvsRatePerBlock() external returns (uint256);
+
+    function totalSupplyApy() external returns (uint256);
+
+    function totalApy() external returns (uint256);
+
+    function venusSpeeds() external view returns (uint256);
+
+    function borrowLimit() external view returns (uint256);
+
+    function totalVTokenSupply() external view returns (uint256);
+
+    function totalVTokenBorrows() external view returns (uint256);
+
     function pause() external;
 
     function unpause() external;

@@ -6,43 +6,44 @@ import { Controller } from '../types/ethers-contracts/Controller';
 import { Controller__factory } from '../types/ethers-contracts/factories/Controller__factory';
 import { ERC20 } from '../types/ethers-contracts/ERC20';
 import { ERC20__factory } from '../types/ethers-contracts/factories/ERC20__factory';
-import { PVault } from '../types/ethers-contracts/PVault';
-import { PVault__factory } from '../types/ethers-contracts/factories/PVault__factory';
+import { WaultBusdVault } from '../types/ethers-contracts/WaultBusdVault';
+import { WaultBusdVault__factory } from '../types/ethers-contracts/factories/WaultBusdVault__factory';
 import { Signer } from 'ethers';
 
 const { ethers } = hre;
 
 use(solidity);
 
-describe('pVault', () => {
+describe('waultBusdVault', () => {
     let deployer: Signer;
     let controllerFactory: Controller__factory;
     let controller: Controller;
     let erc20Factory: ERC20__factory;
     let erc20BUSD: ERC20;
-    let pVaultFactory: PVault__factory;
-    let pBUSD: PVault;
+    let waultBusdVaultFactory: WaultBusdVault__factory;
+    let waultBusdVault: WaultBusdVault;
 
     beforeEach(async () => {
         [ deployer ] = await ethers.getSigners();
         controllerFactory = new Controller__factory(deployer);
         erc20Factory = new ERC20__factory(deployer);
-        pVaultFactory = new PVault__factory(deployer);
+        waultBusdVaultFactory = new WaultBusdVault__factory(deployer);
 
         controller = await controllerFactory.deploy();
         erc20BUSD = await erc20Factory.deploy("Binance USD", "BUSD");
-        pBUSD = await pVaultFactory.deploy(erc20BUSD.address, controller.address);
+        waultBusdVault = await waultBusdVaultFactory.deploy(erc20BUSD.address, controller.address);
     });
 
-    it('Should have name prefix with planu', async () => {
-        const prefixWithPlanu = /^(planu)/g;
-        const planuTokenName = await pBUSD.name();
-        expect(planuTokenName.match(prefixWithPlanu)[0]).to.equal('planu');
+    it('Should have name prefix with Wault', async () => {
+        const prefixWithPlanu = /^(Wault)/g;
+        const planuTokenName = await waultBusdVault.name();
+        console.log(planuTokenName);
+        expect(planuTokenName.match(prefixWithPlanu)[0]).to.equal('Wault');
     });
 
-    it('Should have symbol prefix with p', async () => {
-        const prefixWithP = /^(p)/g;
-        const planuTokenSymbol = await pBUSD.symbol();
-        expect(planuTokenSymbol.match(prefixWithP)[0]).to.equal('p');
+    it('Should have symbol prefix with wault', async () => {
+        const prefixWithP = /^(wault)/g;
+        const planuTokenSymbol = await waultBusdVault.symbol();
+        expect(planuTokenSymbol.match(prefixWithP)[0]).to.equal('wault');
     });
 });

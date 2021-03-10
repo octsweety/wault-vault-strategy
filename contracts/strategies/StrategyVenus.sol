@@ -209,10 +209,6 @@ contract StrategyVenus is StrategyStorage, IStrategy {
         return _withdrawalFee;
     }
     
-    function supplyRatePerBlock() external override view returns (uint256) {
-        return VTokenInterface(_vToken).supplyRatePerBlock();
-    }
-
     function balanceOf() external override view returns (uint256) {
         return balanceOfUnderlying().add(balanceOfStakedUnderlying());
     }
@@ -253,5 +249,121 @@ contract StrategyVenus is StrategyStorage, IStrategy {
     function unpause() external override {
         require(msg.sender == strategist || msg.sender == governance, "!authorized");
         paused = false;
+    }
+
+    function supplyRatePerBlock() external override view returns (uint256) {
+        return VTokenInterface(_vToken).supplyRatePerBlock();
+    }
+
+    function borrowRatePerBlock() external override view returns (uint256) {
+        return VTokenInterface(_vToken).borrowRatePerBlock();
+    }
+
+    function venusSpeeds() external override view returns (uint256 _speed) {
+        _speed = IVenusComptroller(venusComptroller).venusSpeeds(_vToken);
+    }
+
+    function _supplyApy() public view returns (uint256 apy) {
+        uint256 blocksPerDay = blocksPerMin.mul(60).mul(24);
+        uint256 rate = VTokenInterface(_vToken).supplyRatePerBlock();
+
+        // ((Rate / vToken Mantissa * Blocks Per Day + 1) ^ Days Per Year - 1)
+        apy = ((rate.mul(blocksPerDay).div(1e8).add(1))**365).sub(1).mul(100);
+    }
+
+    function _borrowApy() public view returns (uint256 apy) {
+        uint256 blocksPerDay = blocksPerMin.mul(60).mul(24);
+        uint256 rate = VTokenInterface(_vToken).borrowRatePerBlock();
+
+        // ((Rate / vToken Mantissa * Blocks Per Day + 1) ^ Days Per Year - 1)
+        apy = ((rate.mul(blocksPerDay).div(1e8).add(1))**365).sub(1).mul(100);
+    }
+
+    function supplyXvsRatePerBlock() external override returns (uint256 rate) {
+        uint256 venusSpeed = IVenusComptroller(venusComptroller).venusSpeeds(_vToken);
+        uint256 totalSupply = VTokenInterface(_vToken).totalSupply();
+        uint256 exchangeRate = VTokenInterface(_vToken).exchangeRateCurrent();
+        uint256 venusSpeedPerDay = venusSpeed.div(1e18).mul(4).mul(60).mul(24);
+
+        address[] memory swapPath = new address[](3);
+        swapPath[0] = _xvs;
+        swapPath[1] = _wbnb;
+        swapPath[2] = _want; // BUSD
+        uint256 venusPrice100x = IUniswapRouter(uniswapRouter).getAmountsOut(100, swapPath)[2];
+
+        // (venusPrice * venusPerDay / totalSupply * exchangeRate)
+        rate = venusPrice100x.div(100).mul(venusSpeedPerDay).div(totalSupply.mul(exchangeRate));
+    }
+
+    function borrowXvsRatePerBlock() external override returns (uint256 rate) {
+        uint256 venusSpeed = IVenusComptroller(venusComptroller).venusSpeeds(_vToken);
+        uint256 totalBorrows = VTokenInterface(_vToken).totalBorrowsCurrent();
+        uint256 exchangeRate = VTokenInterface(_vToken).exchangeRateCurrent();
+        uint256 venusSpeedPerDay = venusSpeed.div(1e18).mul(4).mul(60).mul(24);
+
+        address[] memory swapPath = new address[](3);
+        swapPath[0] = _xvs;
+        swapPath[1] = _wbnb;
+        swapPath[2] = _want; // BUSD
+        uint256 venusPrice100x = IUniswapRouter(uniswapRouter).getAmountsOut(100, swapPath)[2];
+
+        // (venusPrice * venusPerDay / totalBorrows * exchangeRate)
+        rate = venusPrice100x.div(100).mul(venusSpeedPerDay).div(totalBorrows.mul(exchangeRate));
+    }
+
+    function _supplyXvsApy() public returns (uint256 apy) {
+        uint256 venusSpeed = IVenusComptroller(venusComptroller).venusSpeeds(_vToken);
+        uint256 totalSupply = VTokenInterface(_vToken).totalSupply();
+        uint256 exchangeRate = VTokenInterface(_vToken).exchangeRateCurrent();
+        uint256 venusSpeedPerDay = venusSpeed.div(1e18).mul(4).mul(60).mul(24);
+
+        address[] memory swapPath = new address[](3);
+        swapPath[0] = _xvs;
+        swapPath[1] = _wbnb;
+        swapPath[2] = _want; // BUSD
+        uint256 venusPrice100x = IUniswapRouter(uniswapRouter).getAmountsOut(100, swapPath)[2];
+
+        // 100 * (Math.pow((1 + (venusPrice * venusPerDay / totalSupply)), 365) - 1);
+        apy = (venusPrice100x.div(100).mul(venusSpeedPerDay).div(totalSupply.mul(exchangeRate.div(1e18))).add(1)**365).sub(1).mul(100);
+    }
+
+    function _borrowXvsApy() public returns (uint256 apy) {
+        uint256 venusSpeed = IVenusComptroller(venusComptroller).venusSpeeds(_vToken);
+        uint256 totalBorrows = VTokenInterface(_vToken).totalBorrowsCurrent();
+        uint256 exchangeRate = VTokenInterface(_vToken).exchangeRateCurrent();
+        uint256 venusSpeedPerDay = venusSpeed.div(1e18).mul(4).mul(60).mul(24);
+
+        address[] memory swapPath = new address[](3);
+        swapPath[0] = _xvs;
+        swapPath[1] = _wbnb;
+        swapPath[2] = _want; // BUSD
+        uint256 venusPrice100x = IUniswapRouter(uniswapRouter).getAmountsOut(100, swapPath)[2];
+
+        // 100 * (Math.pow((1 + (venusPrice * venusPerDay / totalBorrows)), 365) - 1);
+        apy = (venusPrice100x.div(100).mul(venusSpeedPerDay).div(totalBorrows.mul(exchangeRate.div(1e18))).add(1)**365).sub(1).mul(100);
+    }
+
+    function totalSupplyApy() public override returns (uint256) {
+        return _supplyApy().add(_supplyXvsApy());
+    }
+
+    function totalBorrowApy() public returns (uint256) {
+        return _borrowXvsApy().sub(_borrowApy());
+    }
+
+    function totalApy() external override returns (uint256) {
+        return totalSupplyApy().add(totalSupplyApy().sub(totalBorrowApy()).mul(targetBorrowLimit).div(1e18));
+    }
+
+    function borrowLimit() external override view returns (uint256) {
+        return targetBorrowLimit;
+    }
+
+    function totalVTokenSupply() external override view returns (uint256) {
+        return VTokenInterface(_vToken).totalSupply();
+    }
+
+    function totalVTokenBorrows() external override view returns (uint256) {
+        return VTokenInterface(_vToken).totalBorrows();
     }
 }
