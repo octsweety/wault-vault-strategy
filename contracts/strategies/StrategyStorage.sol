@@ -74,12 +74,6 @@ contract StrategyStorage {
         _harvesterReward = harvesterReward;
     }
 
-    function setTargetBorrowLimit(uint256 _targetBorrowLimit, uint256 _targetBorrowUnit) external {
-        require(msg.sender == strategist || msg.sender == governance, "!authorized");
-        targetBorrowLimit = _targetBorrowLimit;
-        targetBorrowUnit = _targetBorrowUnit;
-    }
-
     function setBlocksPerMin(uint256 _blocks) external onlyGovernance {
         blocksPerMin = _blocks;
     }

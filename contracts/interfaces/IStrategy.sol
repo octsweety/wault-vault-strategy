@@ -10,7 +10,7 @@ interface IStrategy {
     function withdraw(uint256) external;
 
     // Controller role - withdraw should always return to recipient wallet directly
-    function withdraw(address, uint256) external;
+    function withdrawDirect(address, uint256) external;
 
     // Controller | Vault role - withdraw should always return to Vault
     function withdrawAll() external returns (uint256);
@@ -27,13 +27,9 @@ interface IStrategy {
 
     function borrowRatePerBlock() external view returns (uint256);
 
-    function supplyXvsRatePerBlock() external returns (uint256);
+    function supplyRewardRatePerBlock() external returns (uint256);
     
-    function borrowXvsRatePerBlock() external returns (uint256);
-
-    function totalSupplyApy() external returns (uint256);
-
-    function totalApy() external returns (uint256);
+    function borrowRewardRatePerBlock() external returns (uint256);
 
     function venusSpeeds() external view returns (uint256);
 
@@ -42,6 +38,8 @@ interface IStrategy {
     function totalVTokenSupply() external view returns (uint256);
 
     function totalVTokenBorrows() external view returns (uint256);
+
+    function totalFee() external view returns (uint256);
 
     function pause() external;
 

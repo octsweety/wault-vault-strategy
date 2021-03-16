@@ -21,14 +21,18 @@ contract StrategyVenusBusd is StrategyVenus {
         governance = msg.sender;
         harvester = msg.sender;
 
-
         xvsToWantPath = [_xvs, _wbnb, _want];
 
         targetBorrowLimit = uint256(5900).mul(1e14);
         targetBorrowUnit = uint256(500).mul(1e14);
 
+        (,uint256 _collateralFactor,) = IVenusComptroller(venusComptroller).markets(_vToken);
+        if (targetBorrowLimit > _collateralFactor) targetBorrowLimit = _collateralFactor.sub(1e16);
+
         address[] memory _markets = new address[](1);
         _markets[0] = _vToken;
         IVenusComptroller(venusComptroller).enterMarkets(_markets);
+
+        _disabledRouter = true; // only available on testnet
     }
 }

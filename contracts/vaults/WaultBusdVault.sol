@@ -111,4 +111,17 @@ contract WaultBusdVault is ERC20, IVault {
     function withdrawAll() external override {
         withdraw(balanceOf(msg.sender));
     }
+
+    function balanceOfRewards() external view returns (uint256 _rewards, uint256 _lastRewardedTime) {
+        (_rewards, _lastRewardedTime) = IController(controller).balanceOfRewards(address(token));
+    }
+
+    function withdrawRewards(uint256 _amount) public {
+        IController(controller).withdrawRewards(address(token), _amount);
+    }
+
+    function withdrawRewardsAll() external {
+        (uint256 _rewards,) = IController(controller).balanceOfRewards(address(token));
+        withdrawRewards(_rewards);
+    }
 }
