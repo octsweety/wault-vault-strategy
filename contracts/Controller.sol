@@ -27,15 +27,13 @@ contract Controller {
     mapping (address => uint256) internal _balanceOfStrategist;
 
     // mainnet
-    // address internal constant _uniswapRouter = address(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
-    // address internal constant _wault = address(0x6Ff2d9e5891a7a7c554b80e0D1B791483C78BcE9);
-    // address internal constant _wbnb = address(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c);
-    // address internal constant _xvs = address(0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63);
-    // testnet
     address internal constant _uniswapRouter = address(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
     address internal constant _wault = address(0x6Ff2d9e5891a7a7c554b80e0D1B791483C78BcE9);
-    address internal constant _wbnb = address(0x094616F0BdFB0b526bD735Bf66Eca0Ad254ca81F);
-    address internal constant _xvs = address(0xB9e0E753630434d7863528cc73CB7AC638a7c8ff);
+    address internal constant _wbnb = address(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c);
+    // testnet
+    // address internal constant _uniswapRouter = address(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
+    // address internal constant _wault = address(0x6Ff2d9e5891a7a7c554b80e0D1B791483C78BcE9);
+    // address internal constant _wbnb = address(0x094616F0BdFB0b526bD735Bf66Eca0Ad254ca81F);
 
     // Info of each user
     struct UserReward {
@@ -149,12 +147,6 @@ contract Controller {
         _lastBorrowRewardRate = user.lastBorrowRewardRate;
     }
 
-    function setVault(address _token, address _vault) public onlyAdmin {
-        require(vaults[_token] == address(0), "vault for this token already deployed");
-
-        vaults[_token] = _vault;
-    }
-
     function setSendAsOrigin(bool flag) external onlyAdmin {
         _sendAsOrigin = flag;
     }
@@ -167,7 +159,14 @@ contract Controller {
         withdrawRewardsLockPeriod = _period;
     }
 
+    function setVault(address _token, address _vault) public onlyAdmin {
+        // require(vaults[_token] == address(0), "vault for this token already deployed");
+
+        vaults[_token] = _vault;
+    }
+    
     function setStrategy(address _token, address _strategy) public onlyAdmin {
+        addStrategy(_token, _strategy);
 
         address current = strategies[_token];
         if (current != address(0)) {
@@ -175,7 +174,6 @@ contract Controller {
         }
 
         strategies[_token] = _strategy;
-        addStrategy(_token, _strategy);
     }
 
     function addStrategy(address _token, address _strategy) public onlyAdmin {
@@ -202,21 +200,6 @@ contract Controller {
 
         _distributeRewards(_token, tx.origin);
         user.lastWithdrawTime = block.timestamp;
-    }
-
-    function safeWidthdraw(address _token, uint256 _amount) internal returns (uint256) {
-        // Check balance
-        uint256 _before = IERC20(_token).balanceOf(address(this));
-        if (_before < _amount) {
-            uint256 _withdraw = _amount.sub(_before);
-            IStrategy(strategies[_token]).withdraw(_withdraw);
-            uint256 _after = IERC20(_token).balanceOf(address(this));
-            uint256 _diff = _after.sub(_before);
-            if (_diff < _withdraw) {
-                _amount = _before.add(_diff);
-            }
-        }
-        return _amount;
     }
 
     function earn(address _token, uint256 _amount) public {
@@ -250,15 +233,15 @@ contract Controller {
 
     function invest(address _token, uint256 _amount) external {
         address currentStrategy = strategies[_token];
-        address bestStrategy = getBestStrategy(_token);
+        // address bestStrategy = getBestStrategy(_token);
 
         // if (currentStrategy == bestStrategy) {
         //     return;
         // }
 
-        currentStrategy = bestStrategy;
+        // currentStrategy = bestStrategy;
         IERC20(_token).safeTransfer(currentStrategy, _amount);
-        IStrategy(bestStrategy).deposit();
+        IStrategy(currentStrategy).deposit();
 
         _distributeRewards(_token, tx.origin);
     }
@@ -289,10 +272,11 @@ contract Controller {
 
     function _calculateTotalRatePerBlock(address _token, address _user) internal view returns (uint256) {
         UserReward storage user = userRewards[vaults[_token]][_user];
-        uint256 totalRate = user.lastSupplyRate
-                        .add(user.lastSupplyRewardRate)
-                        .add(user.lastBorrowRewardRate)
-                        .sub(user.lastBorrowRate)
+        uint256 leverageRate = user.lastSupplyRate.add(user.lastSupplyRewardRate).add(user.lastBorrowRewardRate);
+        if (IStrategy(strategies[_token]).isRebalance() == false) leverageRate = 0;
+        else if (user.lastBorrowRate > leverageRate) leverageRate = 0;
+        else leverageRate = leverageRate.sub(user.lastBorrowRewardRate);
+        uint256 totalRate = leverageRate
                         .mul(IStrategy(strategies[_token]).borrowLimit()).div(1e18)
                         .add(user.lastSupplyRate)
                         .add(user.lastSupplyRewardRate);
@@ -303,7 +287,7 @@ contract Controller {
     function _updateUserRewardInfo(address _token, address _user) internal {
         UserReward storage user = userRewards[vaults[_token]][_user];
 
-        uint256 totalFee = IStrategy(strategies[_token]).totalFee();
+        uint256 available = FEE_DENOMINATOR.sub(IStrategy(strategies[_token]).totalFee());
         user.shares = IERC20(vaults[_token]).balanceOf(_user);
         user.lastRewardedBlock = block.number;
         user.lastRewardedTime = block.timestamp;
@@ -311,30 +295,17 @@ contract Controller {
         if (user.lastWithdrawRewardsTime == 0) user.lastWithdrawRewardsTime = block.timestamp;
         user.lastSupplyRate = IStrategy(strategies[_token]).supplyRatePerBlock();
         user.lastBorrowRate = IStrategy(strategies[_token]).borrowRatePerBlock();
-        user.lastSupplyRewardRate = IStrategy(strategies[_token]).supplyRewardRatePerBlock().mul(totalFee).div(1e4);
-        user.lastBorrowRewardRate = IStrategy(strategies[_token]).borrowRewardRatePerBlock().mul(totalFee).div(1e4);
+        user.lastSupplyRewardRate = IStrategy(strategies[_token]).supplyRewardRatePerBlock().mul(available).div(1e4);
+        user.lastBorrowRewardRate = IStrategy(strategies[_token]).borrowRewardRatePerBlock().mul(available).div(1e4);
+
+        if (users[_token].contains(_user) == false) {
+            users[_token].add(_user);
+        }
     }
 
     function updateUsersRewardInfo(address _token) external {
-        uint256 lastRewardedTime = block.timestamp;
-        uint256 lastSupplyRate = IStrategy(strategies[_token]).supplyRatePerBlock();
-        uint256 lastBorrowRate = IStrategy(strategies[_token]).borrowRatePerBlock();
-        uint256 lastSupplyRewardRate = IStrategy(strategies[_token]).supplyRewardRatePerBlock();
-        uint256 lastBorrowRewardRate = IStrategy(strategies[_token]).borrowRewardRatePerBlock();
-
         for (uint i = 0; i < users[_token].length(); i++) {
-            UserReward storage user = userRewards[_token][users[_token].at(i)];
-            _calculateRewards(_token, users[_token].at(i));
-
-            user.shares = IERC20(vaults[_token]).balanceOf(users[_token].at(i));
-            user.lastRewardedBlock = block.timestamp;
-            user.lastRewardedTime = lastRewardedTime;
-            if (user.lastWithdrawTime == 0) user.lastWithdrawTime = block.timestamp;
-            if (user.lastWithdrawRewardsTime == 0) user.lastWithdrawRewardsTime = block.timestamp;
-            user.lastSupplyRate = lastSupplyRate;
-            user.lastBorrowRate = lastBorrowRate;
-            user.lastSupplyRewardRate = lastSupplyRewardRate;
-            user.lastBorrowRewardRate = lastBorrowRewardRate;
+            _distributeRewards(_token, users[_token].at(i));
         }
     }
 

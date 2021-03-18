@@ -21,20 +21,21 @@ contract StrategyVenus is StrategyStorage, IStrategy {
     address internal _want;
     address internal _vToken;
     // testnet
-    address internal constant _xvs = address(0xB9e0E753630434d7863528cc73CB7AC638a7c8ff);
-    address internal constant _wbnb = address(0x094616F0BdFB0b526bD735Bf66Eca0Ad254ca81F);
-    address internal constant _wault = address(0x6Ff2d9e5891a7a7c554b80e0D1B791483C78BcE9);
-    address internal constant venusComptroller = address(0x94d1820b2D1c7c7452A163983Dc888CEC546b77D);
-    address internal constant uniswapRouter = address(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
-    // mainnet
-    // address internal constant _xvs = address(0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63);
-    // address internal constant _wbnb = address(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c);
+    // address internal constant _xvs = address(0xB9e0E753630434d7863528cc73CB7AC638a7c8ff);
+    // address internal constant _wbnb = address(0x094616F0BdFB0b526bD735Bf66Eca0Ad254ca81F);
     // address internal constant _wault = address(0x6Ff2d9e5891a7a7c554b80e0D1B791483C78BcE9);
-    // address internal constant venusComptroller = address(0xfD36E2c2a6789Db23113685031d7F16329158384);
+    // address internal constant venusComptroller = address(0x94d1820b2D1c7c7452A163983Dc888CEC546b77D);
     // address internal constant uniswapRouter = address(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
+    // mainnet
+    address internal constant _xvs = address(0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63);
+    address internal constant _wbnb = address(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c);
+    address internal constant _wault = address(0x6Ff2d9e5891a7a7c554b80e0D1B791483C78BcE9);
+    address internal constant venusComptroller = address(0xfD36E2c2a6789Db23113685031d7F16329158384);
+    address internal constant uniswapRouter = address(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
 
-    bool public _disabledClaim = false;
-    bool public _disabledRouter = false;
+    bool public disabledClaim = false;
+    bool public disabledRouter = false;
+    bool public override isRebalance = true;
 
     address[] internal xvsToWantPath;
 
@@ -63,7 +64,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
     }
 
     function _convertRewardsToWant() internal {
-        if (_disabledClaim == true || _disabledRouter == true) return;
+        if (disabledClaim == true || disabledRouter == true) return;
         uint256 xvs = IERC20(_xvs).balanceOf(address(this));
         if(xvs > 0 ) {
             IERC20(_xvs).safeApprove(uniswapRouter, 0);
@@ -74,6 +75,8 @@ contract StrategyVenus is StrategyStorage, IStrategy {
     }
 
     function _rebalance(uint withdrawAmount) internal {
+      if (isRebalance == false) return;
+
       uint256 _ox = VBep20Interface(_vToken).balanceOfUnderlying(address(this));
       if(_ox == 0) return;
       if(withdrawAmount >= _ox) withdrawAmount = _ox.sub(1);
@@ -167,7 +170,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
     function withdrawAsWault(address recipient, uint256 amount) external override returns (uint256 _out) {
         require(msg.sender == controller, "!controller");
         require(recipient != address(0), "!valid address");
-        require(_disabledRouter == false, "!enabled router");
+        require(disabledRouter == false, "!enabled router");
 
         uint256 _balance = IERC20(_want).balanceOf(address(this));
         if (_balance < amount) {
@@ -180,6 +183,9 @@ contract StrategyVenus is StrategyStorage, IStrategy {
         swapPath[0] = _want;
         swapPath[1] = _wbnb;
         swapPath[2] =_wault;
+
+        IERC20(_want).safeApprove(uniswapRouter, 0);
+        IERC20(_want).safeApprove(uniswapRouter, amount.sub(_fee));
         _out = IUniswapRouter(uniswapRouter).swapExactTokensForTokens(amount.sub(_fee), uint256(0), swapPath, recipient, block.timestamp.add(1800))[2];
         IERC20(_want).safeTransfer(IController(controller).rewards(), _fee);
     }
@@ -205,7 +211,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
        targetBorrowLimit = 0;
        targetBorrowUnit = 0;
        _rebalance(0);
-       require(VBep20Interface(_vToken).redeem(VBep20Interface(_vToken).balanceOf(address(this))) == 0, "_withdrawAll: redeem failed");      
+       require(VBep20Interface(_vToken).redeem(VBep20Interface(_vToken).balanceOf(address(this))) == 0, "_withdrawAll: redeem failed");
     }
 
     function withdrawalFee() external override view returns (uint256) {
@@ -240,12 +246,25 @@ contract StrategyVenus is StrategyStorage, IStrategy {
 
     function disableClaimMode() external {
         require(msg.sender == strategist || msg.sender == governance, "!authorized");
-        _disabledClaim = true;
+        disabledClaim = true;
     }
 
     function disableRouter() external {
         require(msg.sender == strategist || msg.sender == governance, "!authorized");
-        _disabledRouter = true;
+        disabledRouter = true;
+    }
+
+    function setRebalance(bool flag) external {
+        require(msg.sender == strategist || msg.sender == governance, "!authorized");
+        if (isRebalance == true && flag == false) {
+            _rebalance(0);
+            VBep20Interface(_vToken).redeem(VBep20Interface(_vToken).balanceOf(address(this)));
+            _supplyWant();
+            isRebalance = flag;
+        } else if (isRebalance == false && flag == true) {
+            isRebalance = flag;
+            _rebalance(0);
+        }
     }
 
     function pause() external override {
@@ -291,7 +310,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
     }
 
     function priceOfVenus() public view returns (uint256) {
-        if (_disabledRouter == true) return uint256(50).mul(1e18);
+        if (disabledRouter == true) return uint256(50).mul(1e18);
 
         address[] memory swapPath = new address[](3);
         swapPath[0] = _xvs;
@@ -299,7 +318,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
         swapPath[2] = _want; // BUSD
         uint256 xvsPrice100x = IUniswapRouter(uniswapRouter).getAmountsOut(100, swapPath)[2];
 
-        return xvsPrice100x.div(100);
+        return xvsPrice100x.mul(1e16); // 1e18/100
     }
 
     function borrowLimit() external override view returns (uint256) {
@@ -325,24 +344,5 @@ contract StrategyVenus is StrategyStorage, IStrategy {
 
     function totalFee() external override view returns (uint256) {
         return _performanceFee.add(_strategistReward).add(_harvesterReward);
-    }
-
-    function temp() external view returns (uint256) {
-        // uint rate = 1614344197;
-        // uint supply = 50000000000000000000;
-        // uint after365 = rate.mul(supply).mul(10512000).div(1e18).mul(10000).div(supply);
-        // return after365;
-
-        //uint supply = 50000000000000000000;
-        uint supply_rate = 5873641280;
-        //uint borrow_rate = 8887851003;
-        uint supply_xvs_rate = 1602106731;
-        //uint borrow_xvs_rate = 2181841962;
-        uint blocks = 10512000;
-
-        //uint rate = 7937591393;
-        uint rate = uint256(769738970).mul(targetBorrowLimit).div(1e18).add(supply_rate).add(supply_xvs_rate);
-        uint after365 = blocks.mul(50000000000000000000).mul(rate).div(1e18).mul(10000).div(50000000000000000000);
-        return after365;
     }
 }

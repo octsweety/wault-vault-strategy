@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 interface IStrategy {
     function getWant() external view returns (address);
 
+    function isRebalance() external view returns (bool);
+
     function deposit() external;
 
     // Controller | Vault role - withdraw should always return to Vault
