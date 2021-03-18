@@ -75,7 +75,7 @@ async function deploy() {
 
     const strategist = deployer.address;
     const governance = deployer.address;
-    if ("TEST STRATEGY" && false) {
+    if ("TEST STRATEGY" && true) {
         console.log("------ TEST STRATEGY ------");
         const _harvesterReward = (await strategyVenus._withdrawalFee()).toString();
         const _performanceFee = (await strategyVenus._performanceFee()).toString();
@@ -158,7 +158,7 @@ async function deploy() {
         }
     }
 
-    if ("TEST VAULT" && true) {
+    if ("TEST VAULT" && false) {
         console.log("------ TEST VAULT ------");
         console.log("waultBUSD address:", wBUSD.address);
         console.log("waultBUSD name: ", (await wBUSD.name()));
@@ -211,7 +211,7 @@ async function deploy() {
         }
     }
 
-    if ("TEST CONTROLLER" && true) {
+    if ("TEST CONTROLLER" && false) {
         console.log("------ TEST CONTROLLER ------");
         await controller.setSendAsOrigin(true);
         console.log("busd vault address: ", (await controller.vaults(busd.address)).toString());
