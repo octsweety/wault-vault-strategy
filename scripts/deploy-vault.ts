@@ -7,6 +7,7 @@ import { StrategyVenusBusd } from '../types/ethers-contracts/StrategyVenusBusd';
 import { StrategyVenusBusd__factory } from '../types/ethers-contracts/factories/StrategyVenusBusd__factory';
 import { ERC20__factory } from '../types/ethers-contracts/factories/ERC20__factory';
 import { assert } from 'sinon';
+require("dotenv").config();
 
 const { ethers } = hre;
 
@@ -34,15 +35,9 @@ async function deploy() {
     const beforeBalance = await deployer.getBalance();
     console.log("Account balance:", (await deployer.getBalance()).toString());
 
-    const mainnet = true
-    
-    const busdAddress = mainnet ?
-                        '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56' : // mainnet
-                        '0x8301F2213c0eeD49a7E28Ae4c3e91722919B8B47'; // testnet
-    
-    const controllerAddress = mainnet ?
-                        '0xb1aA6AB0eA881Ff1cc01bc0B289761d0DDe46f64' : // mainnet
-                        '0x9e5b4Aa6f04a6aB9bC396Bc859102c9AbEc57081'; // testnet
+    const mainnet = process.env.NETWORK == "mainnet" ? true : false;
+    const busdAddress = mainnet ? process.env.BUSD_MAIN : process.env.BUSD_TEST;
+    const controllerAddress = mainnet ? process.env.CONTROLLER_MAIN : process.env.CONTROLLER_TEST;
     
     const WaultBusdVaultFactory: WaultBusdVault__factory = new WaultBusdVault__factory(deployer);
     const wbVault: WaultBusdVault = await WaultBusdVaultFactory.deploy(busdAddress, controllerAddress);

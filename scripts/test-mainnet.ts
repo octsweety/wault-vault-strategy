@@ -8,6 +8,8 @@ import { StrategyVenusBusd__factory } from '../types/ethers-contracts/factories/
 import { ERC20__factory } from '../types/ethers-contracts/factories/ERC20__factory';
 import { assert } from 'sinon';
 
+require("dotenv").config();
+
 const { ethers } = hre;
 
 const sleep = (milliseconds, msg='') => {
@@ -19,6 +21,10 @@ const sleep = (milliseconds, msg='') => {
     } while (currentDate - date < milliseconds);
 }
 
+const parseEther = (val) => {
+    return ethers.utils.parseEther(val);
+}
+
 async function deploy() {
     const [deployer] = await ethers.getSigners();
     
@@ -27,37 +33,19 @@ async function deploy() {
         deployer.address
     );
 
-    const marketerAddress = '0xC627D743B1BfF30f853AE218396e6d47a4f34ceA';
-    const rewardsAddress = '0xC627D743B1BfF30f853AE218396e6d47a4f34ceA';
-    const harvesterAddress = '0x3d09b0E96904C71afb02013641181AAf99927618';
     const beforeBalance = await deployer.getBalance();
     console.log("Account balance:", (await deployer.getBalance()).toString());
 
-    const mainnet = true;
-
-    const waultAddress = mainnet ?
-                        '0x6ff2d9e5891a7a7c554b80e0d1b791483c78bce9' : // mainnet
-                        '0x6ff2d9e5891a7a7c554b80e0d1b791483c78bce9'; // not sure
-    
-    const xvsAddress = mainnet ?
-                        '0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63' : // mainnet
-                        '0xB9e0E753630434d7863528cc73CB7AC638a7c8ff'; // testnet
-    
-    const busdAddress = mainnet ?
-                        '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56' : // mainnet
-                        '0x8301F2213c0eeD49a7E28Ae4c3e91722919B8B47'; // testnet
-    
-    const controllerAddress = mainnet ?
-                        '0xb1aA6AB0eA881Ff1cc01bc0B289761d0DDe46f64' : // mainnet
-                        '0x9e5b4Aa6f04a6aB9bC396Bc859102c9AbEc57081'; // testnet
-
-    const vaultAddress = mainnet ?
-                        '0xFBc149FeEd7C7982c825197b3eA8e367ac0aD265' : // mainnet
-                        '0x6c471232657777a6b9Fbb46E04521748b7634Cd2'; // testnet
-
-    const strategyAddress = mainnet ?
-                        '0x3D78612D12A51c34DF4Fb439d84ccED7F51d10e0' : // mainnet
-                        '0xE582dB523afc20bef03492a11D454758cf363760'; // testnet
+    const mainnet = process.env.NETWORK == "mainnet" ? true : false;
+    const marketerAddress = process.env.MARKETER_ADDR;
+    const rewardsAddress = process.env.REWARDS_ADDR;
+    const harvesterAddress = process.env.HARVESTER_ADDR;
+    const waultAddress = mainnet ? process.env.WAULT_MAIN : process.env.WAULT_TEST;
+    const xvsAddress = mainnet ? process.env.XVS_MAIN : process.env.XVS_TEST;
+    const busdAddress = mainnet ? process.env.BUSD_MAIN : process.env.BUSD_TEST;
+    const controllerAddress = mainnet ? process.env.CONTROLLER_MAIN : process.env.CONTROLLER_TEST;
+    const vaultAddress = mainnet ? process.env.VAULT_MAIN : process.env.VAULT_TEST;
+    const strategyAddress = mainnet ? process.env.STRATEGY_MAIN : process.env.STRATEGY_TEST;
 
     const erc20Factory = new ERC20__factory(deployer);
     const busd = erc20Factory.attach(busdAddress).connect(deployer);
@@ -181,12 +169,23 @@ async function deploy() {
             }
         }
 
+        console.log("lastHarvestedTime: ", (await strategyVenus.lastHarvestedTime()).toString());
+        console.log("lastHarvestedBlock: ", (await strategyVenus.lastHarvestedBlock()).toString());
+        console.log("lastAvgSupplyBalance: ", (await strategyVenus.lastAvgSupplyBalance()).toString());
+        console.log("harvestFee: ", (await strategyVenus.harvestFee()).toString());
+        console.log("expectedHarvestRewards: ", (await strategyVenus.expectedHarvestRewards()).toString());
         console.log("XVS Balance of rewarder: ", (await xvs.balanceOf(rewardsAddress)).toString());
         console.log("XVS Balance of strategist: ", (await xvs.balanceOf(deployer.address)).toString());
         console.log("XVS Balance of harvester: ", (await xvs.balanceOf(harvesterAddress)).toString());
-        if ('HARVEST' && false) {
-            strategyVenus.harvest();
+        if ('FORCE HARVEST' && false) {
+            await strategyVenus.harvest(true, {gasLimit: 9500000});
             sleep(2000, "Harvest...");
+            if ("SET HARVEST FEE" && false) {
+                await strategyVenus.setHarvestFee(100, {gasLimit: 9500000});
+                sleep(2000, "Setting harvest fee... (100)");
+                await strategyVenus.harvest(false, {gasLimit: 9500000});
+                sleep(2000, "Harvest again...");
+            }
             console.log("Balance of underlying token after harvest: ", (await controller.balanceOf(busdAddress)).toString());
             console.log("XVS Balance of rewarder after harvest: ", (await xvs.balanceOf(rewardsAddress)).toString());
             console.log("XVS Balance of strategist after harvest: ", (await xvs.balanceOf(deployer.address)).toString());
@@ -209,9 +208,9 @@ async function deploy() {
         console.log("Balance of BUSD: ", (await busd.balanceOf(deployer.address)).toString());
         console.log("Balance of waultBUSD: ", (await wBUSD.balanceOf(deployer.address)).toString());
         if ("DEPOSIT" && false) {
-            await busd.approve(wBUSD.address, ethers.BigNumber.from('5000000000000000000'));
-            await wBUSD.deposit(ethers.BigNumber.from("5000000000000000000"), {gasLimit: 9500000});
-            sleep(2000, "deposit 5 BUSD");
+            await busd.approve(wBUSD.address, parseEther('10'));
+            await wBUSD.deposit(parseEther('10'), {gasLimit: 9500000});
+            sleep(2000, "deposit 10 BUSD");
             console.log("Balance of BUSD after deposit: ", (await busd.balanceOf(deployer.address)).toString());
             console.log("Balance of waultBUSD after deposit: ", (await wBUSD.balanceOf(deployer.address)).toString());
             console.log("Total balance of strategy after deposit: ", (await strategyVenus.balanceOf()).toString());
@@ -231,7 +230,7 @@ async function deploy() {
             console.log("Available BUSD Balance of Vault: ", (await wBUSD.available()).toString());
         }
         if ("WITHDRAW" && false) { // need to run after 5 mins from deposit
-            await wBUSD.withdraw(ethers.BigNumber.from("4000000000000000000"), {gasLimit: 9500000});
+            await wBUSD.withdraw(parseEther('2'), {gasLimit: 9500000});
             sleep(2000, "withdraw 4 BUSD");
             console.log("Balance of BUSD after withdraw 4 BUSD: ", (await busd.balanceOf(deployer.address)).toString());
             console.log("Balance of waultBUSD after withdraw 30 BUSD: ", (await wBUSD.balanceOf(deployer.address)).toString());
@@ -259,10 +258,11 @@ async function deploy() {
             console.log("balanceOfUnderlying of strategy after withdrawAll: ", (await strategyVenus.balanceOfUnderlying()).toString());
             console.log("balanceOfStakedUnderlying of strategy after withdrawAll: ", (await strategyVenus.balanceOfStakedUnderlying()).toString());
         }
-        if ('WITHDRAW REWARDS' /*&& mainnet*/ && false) {
-            if (mainnet) console.log("Wault balance of user before withdraw rewards: ", (await wault.balanceOf(deployer.address)).toString());
-            await wBUSD.withdrawRewardsAll({gasLimit: 9500000});
-            if (mainnet) console.log("Wault balance of user after withdraw rewards: ", (await wault.balanceOf(deployer.address)).toString());
+        if ('CLAIM REWARDS' /*&& mainnet*/ && false) {
+            //await wault.transfer(controller.address, parseEther('1000'));
+            console.log("Wault balance of user before withdraw rewards: ", (await wault.balanceOf(deployer.address)).toString());
+            await wBUSD.claim({gasLimit: 9500000});
+            console.log("Wault balance of user after withdraw rewards: ", (await wault.balanceOf(deployer.address)).toString());
         }
     }
 
@@ -273,6 +273,7 @@ async function deploy() {
         console.log("Period of withdraw lock: ", (await controller.withdrawLockPeriod()).toString());
         console.log("Period of withdraw rewards lock: ", (await controller.withdrawRewardsLockPeriod()).toString());
         console.log("Balance of underlying token: ", (await controller.balanceOf(busdAddress)).toString());
+        console.log("Balance of Wault: ", (await controller.balanceOfWault()).toString());
         console.log("Balance of marketer rewards: ", (await controller.balanceOfMarketer(busdAddress)).toString());
         console.log("Balance of strategist rewards: ", (await controller.balanceOfStrategist(busdAddress)).toString());
         if (mainnet) {
@@ -289,7 +290,7 @@ async function deploy() {
             sleep(2000);
         }
         let userInfo = (await controller.userInfo(busd.address, deployer.address));
-        console.log("User reward info: ", userInfo);
+        //console.log("User reward info: ", userInfo);
         console.log("User reward info(shares): ", userInfo['_shares'].toString());
         console.log("User reward info(reward): ", userInfo['_reward'].toString());
         console.log("User reward info(lastBlock): ", userInfo['_lastRewardedBlock'].toString());
@@ -297,9 +298,10 @@ async function deploy() {
         console.log("User reward info(lastBorrowRate): ", userInfo['_lastBorrowRate'].toString());
         console.log("User reward info(lastSupplyRewardRate): ", userInfo['_lastSupplyRewardRate'].toString());
         console.log("User reward info(lastBorrowRewardRate): ", userInfo['_lastBorrowRewardRate'].toString());
-        let vaultRewards = (await wBUSD.balanceOfRewards());
-        console.log("User reward from Vault(reards): ", vaultRewards['_rewards'].toString());
-        console.log("User reward from Vault(time): ", vaultRewards['_lastRewardedTime'].toString());
+        console.log("User reward from Vault(reards): ", (await wBUSD.balanceOfRewards()).toString());
+        let rewardInfo = await controller.balanceOfUserRewards(busdAddress, deployer.address);
+        console.log("balanceOfUserRewards(rewards): ", rewardInfo['_rewards'].toString());
+        console.log("balanceOfUserRewards(waults): ", rewardInfo['_waults'].toString());
         if ("DIRECT WITHDRAW" && false) {
             console.log("Balance of underlying token before direct withdraw: ", (await controller.balanceOf(busdAddress)).toString());
             console.log("Balance of deployer before direct withdraw: ", (await busd.balanceOf(deployer.address)).toString());
@@ -316,14 +318,25 @@ async function deploy() {
         }
         if ("WITHDRAW REWARDS ALL" && false) {
             await wBUSD.withdrawRewardsAll({gasLimit: 9500000});
-            vaultRewards = (await wBUSD.balanceOfRewards());
-            console.log("User rewards after withdraw: ", vaultRewards['_rewards'].toString());
+            console.log("User rewards after withdraw: ", (await wBUSD.balanceOfRewards()).toString());
             console.log("Balance of deployer after withdraw: ", (await busd.balanceOf(deployer.address)).toString());
         }
         if ('WITHDRAW STRATEGIST REWARDS' /*&& mainnet*/ && false) {
             if (mainnet) console.log("Wault balance of strategist before withdraw rewards: ", (await wault.balanceOf(deployer.address)).toString());
             await controller.withdrawStrategistRewardsAll(busdAddress, {gasLimit: 9500000});
             if (mainnet) console.log("Wault balance of strategist after withdraw rewards: ", (await wault.balanceOf(deployer.address)).toString());
+        }
+        if ('WITHDRAW WAULT ALL' && false) {
+            console.log("Wault balance of deployer before withdraw: ", (await wault.balanceOf(deployer.address)).toString());
+            await controller.withdrawWaultAll({gasLimit: 9500000});
+            console.log("Wault balance of deployer after withdraw: ", (await wault.balanceOf(deployer.address)).toString());
+            console.log("Wault balance of controller after withdraw: ", (await controller.balanceOfWault()).toString());
+        }
+        if ('WITHDRAW WAULT' && false) {
+            console.log("Wault balance of deployer before withdraw: ", (await wault.balanceOf(deployer.address)).toString());
+            await controller.withdrawWault(parseEther('1.95'), {gasLimit: 9500000});
+            console.log("Wault balance of deployer after withdraw: ", (await wault.balanceOf(deployer.address)).toString());
+            console.log("Wault balance of controller after withdraw: ", (await controller.balanceOfWault()).toString());
         }
     }
 

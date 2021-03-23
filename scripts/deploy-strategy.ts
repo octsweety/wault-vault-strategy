@@ -7,6 +7,7 @@ import { StrategyVenusBusd } from '../types/ethers-contracts/StrategyVenusBusd';
 import { StrategyVenusBusd__factory } from '../types/ethers-contracts/factories/StrategyVenusBusd__factory';
 import { ERC20__factory } from '../types/ethers-contracts/factories/ERC20__factory';
 import { assert } from 'sinon';
+require("dotenv").config();
 
 const { ethers } = hre;
 
@@ -34,11 +35,8 @@ async function deploy() {
     const beforeBalance = await deployer.getBalance();
     console.log("Account balance:", (await deployer.getBalance()).toString());
 
-    const mainnet = true;
-    
-    const controllerAddress = mainnet ?
-                        '0xb1aA6AB0eA881Ff1cc01bc0B289761d0DDe46f64' : // mainnet
-                        '0x9e5b4Aa6f04a6aB9bC396Bc859102c9AbEc57081'; // testnet
+    const mainnet = process.env.NETWORK == "mainnet" ? true : false;
+    const controllerAddress = mainnet ? process.env.CONTROLLER_MAIN : process.env.CONTROLLER_TEST;
     
     const strategyVenusFactory: StrategyVenusBusd__factory = new StrategyVenusBusd__factory(deployer);
     const strategyVenus: StrategyVenusBusd = await strategyVenusFactory.deploy(controllerAddress);

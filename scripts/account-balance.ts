@@ -2,6 +2,8 @@ import * as hre from 'hardhat';
 import { ERC20__factory } from '../types/ethers-contracts/factories/ERC20__factory';
 const { ethers } = hre;
 
+require("dotenv").config();
+
 const toEther = (val) => {
     return ethers.utils.formatEther(val);
 }
@@ -9,10 +11,9 @@ const toEther = (val) => {
 async function deploy() {
     const [deployer] = await ethers.getSigners();
     
-    //const busdAddress = '0x8301F2213c0eeD49a7E28Ae4c3e91722919B8B47'; // testnet
-    const busdAddress = '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56'; // mainnet
-
-    const waultAddress = '0x6Ff2d9e5891a7a7c554b80e0D1B791483C78BcE9';
+    const mainnet = process.env.NETWORK == "mainnet" ? true : false;
+    const busdAddress = mainnet ? process.env.BUSD_MAIN : process.env.BUSD_TEST;
+    const waultAddress = mainnet ? process.env.WAULT_MAIN : process.env.WAULT_TEST;
     
     console.log("Account: ", deployer.address);
     const balance = await deployer.getBalance();
@@ -25,7 +26,7 @@ async function deploy() {
     console.log("BUSD balance(wei): ", busdBalance.toString());
     console.log("BUSD balance(ether): ", toEther(busdBalance));
 
-    if ('WAULT' && true) {
+    if (mainnet) {
         const wault = erc20Factory.attach(waultAddress).connect(deployer);
         const waultBalance = await wault.balanceOf(deployer.address);
         console.log("Wault balance(wei): ", waultBalance.toString());

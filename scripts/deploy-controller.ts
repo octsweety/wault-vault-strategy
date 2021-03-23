@@ -8,6 +8,8 @@ import { StrategyVenusBusd__factory } from '../types/ethers-contracts/factories/
 import { ERC20__factory } from '../types/ethers-contracts/factories/ERC20__factory';
 import { assert } from 'sinon';
 
+require("dotenv").config();
+
 const { ethers } = hre;
 
 const sleep = (milliseconds, msg='') => {
