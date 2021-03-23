@@ -14,4 +14,9 @@ interface IUniswapRouter {
       uint amountIn,
       address[] memory path
     ) external view returns (uint[] memory amounts);
+
+    function getAmountsIn(
+      uint amountOut,
+      address[] memory path
+    ) external view returns (uint[] memory amounts);
 }

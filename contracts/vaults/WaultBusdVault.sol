@@ -17,7 +17,7 @@ contract WaultBusdVault is ERC20, IVault {
 
     IERC20 public token;
 
-    uint256 public min = 10000;
+    uint256 public min = 10;
     uint256 public constant max = 10000;
 
     address public governance;
@@ -70,6 +70,8 @@ contract WaultBusdVault is ERC20, IVault {
     }
 
     function deposit(uint256 _amount) public override {
+        require(_amount >= min.mul(1e18), "deposit amount is too small");
+
         uint256 _pool = balance();
         uint256 _before = token.balanceOf(address(this));
         token.safeTransferFrom(msg.sender, address(this), _amount);
@@ -112,16 +114,16 @@ contract WaultBusdVault is ERC20, IVault {
         withdraw(balanceOf(msg.sender));
     }
 
-    function balanceOfRewards() external view returns (uint256 _rewards, uint256 _lastRewardedTime) {
-        (_rewards, _lastRewardedTime) = IController(controller).balanceOfRewards(address(token));
+    function balanceOfRewards() external view returns (uint256 _rewards) {
+        _rewards = IController(controller).balanceOfRewards(address(token));
     }
 
-    function withdrawRewards(uint256 _amount) public {
-        IController(controller).withdrawRewards(address(token), _amount);
+    function claimSome(uint256 _amount) public {
+        IController(controller).claim(address(token), _amount);
     }
 
-    function withdrawRewardsAll() external {
-        (uint256 _rewards,) = IController(controller).balanceOfRewards(address(token));
-        withdrawRewards(_rewards);
+    function claim() external {
+        uint256 _rewards = IController(controller).balanceOfRewards(address(token));
+        claimSome(_rewards);
     }
 }

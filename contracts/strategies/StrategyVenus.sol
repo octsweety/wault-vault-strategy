@@ -20,22 +20,21 @@ contract StrategyVenus is StrategyStorage, IStrategy {
 
     address internal _want;
     address internal _vToken;
-    // testnet
-    // address internal constant _xvs = address(0xB9e0E753630434d7863528cc73CB7AC638a7c8ff);
-    // address internal constant _wbnb = address(0x094616F0BdFB0b526bD735Bf66Eca0Ad254ca81F);
-    // address internal constant _wault = address(0x6Ff2d9e5891a7a7c554b80e0D1B791483C78BcE9);
-    // address internal constant venusComptroller = address(0x94d1820b2D1c7c7452A163983Dc888CEC546b77D);
-    // address internal constant uniswapRouter = address(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
-    // mainnet
-    address internal constant _xvs = address(0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63);
-    address internal constant _wbnb = address(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c);
-    address internal constant _wault = address(0x6Ff2d9e5891a7a7c554b80e0D1B791483C78BcE9);
-    address internal constant venusComptroller = address(0xfD36E2c2a6789Db23113685031d7F16329158384);
-    address internal constant uniswapRouter = address(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
+    
+    address public _xvs = address(0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63);
+    address public _wbnb = address(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c);
+    address public _wault = address(0x6Ff2d9e5891a7a7c554b80e0D1B791483C78BcE9);
+    address public venusComptroller = address(0xfD36E2c2a6789Db23113685031d7F16329158384);
+    address public uniswapRouter = address(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
 
     bool public disabledClaim = false;
     bool public disabledRouter = false;
     bool public override isRebalance = true;
+
+    uint256 public lastHarvestedTime;
+    uint256 public lastHarvestedBlock;
+    uint256 public lastAvgSupplyBalance;
+    uint256 public harvestFee = 3941667484200000000; // BUSD * 1e18
 
     address[] internal xvsToWantPath;
 
@@ -44,6 +43,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
         if (balanceOfWant > 0) {
             _supplyWant();
             _rebalance(0);
+            refreshAvgSupply();
         }
     }
 
@@ -118,14 +118,15 @@ contract StrategyVenus is StrategyStorage, IStrategy {
       }
     }
 
-    function harvest() external override returns (uint256) {
+    function harvest(bool force) external override returns (uint256) {
         // require(msg.sender == strategist || msg.sender == governance, "!authorized");
         // It would be a cron daemon in backend
         require(msg.sender == harvester, "!harvester");
+        require(harvestFee < expectedHarvestRewards() || force == true, "harvest fee is too much than expected rewards");
 
         _claimXvs();
 
-        uint xvs = IERC20(_xvs).balanceOf(address(this)); 
+        uint xvs = IERC20(_xvs).balanceOf(address(this));
         uint256 harvesterReward;
         if (xvs > 0) {
             uint256 _fee = xvs.mul(_performanceFee).div(FEE_DENOMINATOR);
@@ -139,6 +140,10 @@ contract StrategyVenus is StrategyStorage, IStrategy {
         _convertRewardsToWant();
         _supplyWant();
         _rebalance(0);
+
+        lastHarvestedBlock = block.number;
+        lastHarvestedTime = block.timestamp;
+        lastAvgSupplyBalance = balanceOfStakedUnderlying();
 
         return harvesterReward;
     }
@@ -195,6 +200,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
       uint _balance = VBep20Interface(_vToken).balanceOfUnderlying(address(this));
       if(_amount > _balance) _amount = _balance;
       require(VBep20Interface(_vToken).redeemUnderlying(_amount) == 0, "_withdrawSome: redeem failed");
+      refreshAvgSupply();
       return _amount;
     }
 
@@ -267,22 +273,11 @@ contract StrategyVenus is StrategyStorage, IStrategy {
         }
     }
 
-    function pause() external override {
-        require(msg.sender == strategist || msg.sender == governance, "!authorized");
-        _withdrawAll();
-        paused = true;
-    }
-
-    function unpause() external override {
-        require(msg.sender == strategist || msg.sender == governance, "!authorized");
-        paused = false;
-    }
-
-    function supplyRatePerBlock() external override view returns (uint256) {
+    function supplyRatePerBlock() public override view returns (uint256) {
         return VTokenInterface(_vToken).supplyRatePerBlock();
     }
 
-    function borrowRatePerBlock() external override view returns (uint256) {
+    function borrowRatePerBlock() public override view returns (uint256) {
         return VTokenInterface(_vToken).borrowRatePerBlock();
     }
 
@@ -290,7 +285,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
         _speed = IVenusComptroller(venusComptroller).venusSpeeds(_vToken);
     }
 
-    function supplyRewardRatePerBlock() external override view returns (uint256 rate) {
+    function supplyRewardRatePerBlock() public override view returns (uint256 rate) {
         uint256 venusSpeed = IVenusComptroller(venusComptroller).venusSpeeds(_vToken);
         uint256 totalSupply = VTokenInterface(_vToken).totalSupply();
         uint256 exchangeRate = VTokenInterface(_vToken).exchangeRateStored();
@@ -300,7 +295,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
         rate = venusPrice.mul(venusSpeed).mul(1e18).div(totalSupply).div(exchangeRate);
     }
 
-    function borrowRewardRatePerBlock() external override view returns (uint256 rate) {
+    function borrowRewardRatePerBlock() public override view returns (uint256 rate) {
         uint256 venusSpeed = IVenusComptroller(venusComptroller).venusSpeeds(_vToken);
         uint256 totalBorrows = VTokenInterface(_vToken).totalBorrows();
         uint256 venusPrice = priceOfVenus();
@@ -316,9 +311,9 @@ contract StrategyVenus is StrategyStorage, IStrategy {
         swapPath[0] = _xvs;
         swapPath[1] = _wbnb;
         swapPath[2] = _want; // BUSD
-        uint256 xvsPrice100x = IUniswapRouter(uniswapRouter).getAmountsOut(100, swapPath)[2];
+        uint256 xvsPrice = IUniswapRouter(uniswapRouter).getAmountsOut(1e18, swapPath)[2];
 
-        return xvsPrice100x.mul(1e16); // 1e18/100
+        return xvsPrice;
     }
 
     function borrowLimit() external override view returns (uint256) {
@@ -344,5 +339,45 @@ contract StrategyVenus is StrategyStorage, IStrategy {
 
     function totalFee() external override view returns (uint256) {
         return _performanceFee.add(_strategistReward).add(_harvesterReward);
+    }
+
+    function expectedHarvestRewards() public view returns (uint256) {
+        uint256 available = FEE_DENOMINATOR.sub(_performanceFee).sub(_strategistReward).sub(_harvesterReward);
+        uint256 borrowRewardRate = borrowRewardRatePerBlock().mul(available).div(FEE_DENOMINATOR);
+        uint256 supplyRewardRate = supplyRewardRatePerBlock().mul(available).div(FEE_DENOMINATOR);
+        uint256 leverageRewardRate = supplyRewardRate.add(borrowRewardRate).mul(targetBorrowLimit).div(1e18);
+
+        uint256 expectedRewards = leverageRewardRate
+                                    .add(supplyRewardRate)
+                                    .mul(block.number.sub(lastHarvestedBlock))
+                                    .mul(lastAvgSupplyBalance).div(1e18);
+
+        return expectedRewards;
+    }
+
+    function refreshAvgSupply() internal {
+        if (lastAvgSupplyBalance == 0) lastAvgSupplyBalance = balanceOfStakedUnderlying();
+        else lastAvgSupplyBalance = lastAvgSupplyBalance.add(balanceOfStakedUnderlying()).div(2);
+
+        if (lastHarvestedBlock == 0) {
+            lastHarvestedBlock = block.number;
+            lastHarvestedTime = block.timestamp;
+        }
+    }
+
+    function setHarvestFee(uint256 _fee) external {
+        require(msg.sender == strategist || msg.sender == governance, "!authorized");
+        harvestFee = _fee;
+    }
+
+    function pause() external override {
+        require(msg.sender == strategist || msg.sender == governance, "!authorized");
+        _withdrawAll();
+        paused = true;
+    }
+
+    function unpause() external override {
+        require(msg.sender == strategist || msg.sender == governance, "!authorized");
+        paused = false;
     }
 }

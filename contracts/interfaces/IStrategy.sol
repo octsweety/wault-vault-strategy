@@ -19,7 +19,7 @@ interface IStrategy {
 
     function withdrawAsWault(address, uint256) external returns (uint256);
 
-    function harvest() external returns (uint256);
+    function harvest(bool) external returns (uint256);
 
     function balanceOf() external view returns (uint256);
 
