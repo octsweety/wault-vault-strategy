@@ -307,7 +307,7 @@ contract Controller {
         uint256 leverageRate = user.lastSupplyRate.add(user.lastSupplyRewardRate).add(user.lastBorrowRewardRate);
         if (IStrategy(strategies[_token]).isRebalance() == false) leverageRate = 0;
         else if (user.lastBorrowRate > leverageRate) leverageRate = 0;
-        else leverageRate = leverageRate.sub(user.lastBorrowRewardRate);
+        else leverageRate = leverageRate.sub(user.lastBorrowRate);
         uint256 totalRate = leverageRate
                         .mul(IStrategy(strategies[_token]).borrowLimit()).div(1e18)
                         .add(user.lastSupplyRate)
