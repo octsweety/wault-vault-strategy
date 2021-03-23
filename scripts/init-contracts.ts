@@ -81,9 +81,12 @@ async function deploy() {
         await controller.enableTestnet();
         console.log("Disable router of strategy...");
         await strategyVenus.disableRouter();
+        console.log("Setting borrow limit...");
+        await strategyVenus.setTargetBorrowLimit(parseEther('0.79'), parseEther('0.01'));
     }
     console.log("Setting minimum deposit amount to 5 BUSD...");
     await vault.setMin(5);
+    console.log("Entering to Venus market...");
     strategyVenus.enterVenusMarket();
     console.log("Initialized Controller...");
     

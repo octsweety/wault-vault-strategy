@@ -66,7 +66,7 @@ async function deploy() {
 
     const strategist = deployer.address;
     const governance = deployer.address;
-    if ("TEST STRATEGY" && false) {
+    if ("TEST STRATEGY" && true) {
         console.log("------ TEST STRATEGY ------");
         const _harvesterReward = (await strategyVenus._withdrawalFee()).toString();
         const _performanceFee = (await strategyVenus._performanceFee()).toString();
@@ -197,7 +197,7 @@ async function deploy() {
         }
     }
 
-    if ("TEST VAULT" && false) {
+    if ("TEST VAULT" && true) {
         console.log("------ TEST VAULT ------");
         console.log("waultBUSD address:", wBUSD.address);
         console.log("waultBUSD name: ", (await wBUSD.name()));
@@ -218,10 +218,10 @@ async function deploy() {
             console.log("balanceOfStakedUnderlying of strategy after deposit: ", (await strategyVenus.balanceOfStakedUnderlying()).toString());
             console.log("Available BUSD Balance of Vault: ", (await wBUSD.available()).toString());
         }
-        if ("DEPOSIT ALL" && false) {
-            await busd.approve(wBUSD.address, ethers.BigNumber.from('100000000000000000000'));
+        if ("DEPOSIT ALL" && true) {
+            await busd.approve(wBUSD.address, (await busd.balanceOf(deployer.address)));
             await wBUSD.depositAll({gasLimit: 9500000});
-            sleep(2000, "deposit all (100 BUSD)");
+            sleep(2000, "deposit all");
             console.log("Balance of BUSD after deposit: ", (await busd.balanceOf(deployer.address)).toString());
             console.log("Balance of waultBUSD after deposit: ", (await wBUSD.balanceOf(deployer.address)).toString());
             console.log("Total balance of strategy after deposit: ", (await strategyVenus.balanceOf()).toString());
