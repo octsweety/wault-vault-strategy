@@ -25,6 +25,7 @@ async function deploy() {
     const busdBalance = await busd.balanceOf(deployer.address);
     console.log("BUSD balance(wei): ", busdBalance.toString());
     console.log("BUSD balance(ether): ", toEther(busdBalance));
+    // await busd.transfer('0x6e3adB8F0E5CeB42F416e1815A03d5FCB7Fbf3C5', ethers.utils.parseEther('20'));
 
     if (mainnet) {
         const wault = erc20Factory.attach(waultAddress).connect(deployer);

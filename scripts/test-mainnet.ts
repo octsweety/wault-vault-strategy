@@ -66,7 +66,7 @@ async function deploy() {
 
     const strategist = deployer.address;
     const governance = deployer.address;
-    if ("TEST STRATEGY" && true) {
+    if ("TEST STRATEGY" && false) {
         console.log("------ TEST STRATEGY ------");
         const _harvesterReward = (await strategyVenus._withdrawalFee()).toString();
         const _performanceFee = (await strategyVenus._performanceFee()).toString();
@@ -218,7 +218,7 @@ async function deploy() {
             console.log("balanceOfStakedUnderlying of strategy after deposit: ", (await strategyVenus.balanceOfStakedUnderlying()).toString());
             console.log("Available BUSD Balance of Vault: ", (await wBUSD.available()).toString());
         }
-        if ("DEPOSIT ALL" && true) {
+        if ("DEPOSIT ALL" && false) {
             await busd.approve(wBUSD.address, (await busd.balanceOf(deployer.address)));
             await wBUSD.depositAll({gasLimit: 9500000});
             sleep(2000, "deposit all");
@@ -230,7 +230,7 @@ async function deploy() {
             console.log("Available BUSD Balance of Vault: ", (await wBUSD.available()).toString());
         }
         if ("WITHDRAW" && false) { // need to run after 5 mins from deposit
-            await wBUSD.withdraw(parseEther('2'), {gasLimit: 9500000});
+            await wBUSD.withdraw(parseEther('40'), {gasLimit: 9500000});
             sleep(2000, "withdraw 4 BUSD");
             console.log("Balance of BUSD after withdraw 4 BUSD: ", (await busd.balanceOf(deployer.address)).toString());
             console.log("Balance of waultBUSD after withdraw 30 BUSD: ", (await wBUSD.balanceOf(deployer.address)).toString());
@@ -298,7 +298,7 @@ async function deploy() {
         console.log("User reward info(lastBorrowRate): ", userInfo['_lastBorrowRate'].toString());
         console.log("User reward info(lastSupplyRewardRate): ", userInfo['_lastSupplyRewardRate'].toString());
         console.log("User reward info(lastBorrowRewardRate): ", userInfo['_lastBorrowRewardRate'].toString());
-        console.log("User reward from Vault(reards): ", (await wBUSD.balanceOfRewards()).toString());
+        //console.log("User reward from Vault(reards): ", (await wBUSD.balanceOfRewards()).toString());
         let rewardInfo = await controller.balanceOfUserRewards(busdAddress, deployer.address);
         console.log("balanceOfUserRewards(rewards): ", rewardInfo['_rewards'].toString());
         console.log("balanceOfUserRewards(waults): ", rewardInfo['_waults'].toString());

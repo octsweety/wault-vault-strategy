@@ -87,8 +87,12 @@ async function deploy() {
     console.log("Setting minimum deposit amount to 5 BUSD...");
     await vault.setMin(5);
     console.log("Entering to Venus market...");
-    strategyVenus.enterVenusMarket();
-    console.log("Initialized Controller...");
+    await strategyVenus.enterVenusMarket();
+    // console.log("Initialized Controller...");
+    console.log("Setting governance...");
+    await controller.setGovernance(process.env.GOVERNANCE_ADDR);
+    await vault.setGovernance(process.env.GOVERNANCE_ADDR);
+    await strategyVenus.setGovernance(process.env.GOVERNANCE_ADDR);
     
     console.log("BUSD Vault address:", vault.address);
     console.log("StrategyVenus address:", strategyVenus.address);
