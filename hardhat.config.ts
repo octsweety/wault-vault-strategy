@@ -1,6 +1,8 @@
 import { task } from "hardhat/config";
 import "./tasks/compile";
 import "@nomiclabs/hardhat-waffle";
+require('@nomiclabs/hardhat-ethers');
+require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 
 // This is a sample Hardhat task. To learn how to create your own go to
@@ -56,5 +58,10 @@ export default {
             gasPrice: 20000000000,
             accounts: { mnemonic: MNEMONIC_DV_TEST_WALLET },
         }
+    },
+    etherscan: {
+        // Your API key for Etherscan
+        // Obtain one at https://bscscan.com/
+        apiKey: process.env.API_KEY,
     },
 };
