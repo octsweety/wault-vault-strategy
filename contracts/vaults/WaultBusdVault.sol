@@ -57,10 +57,6 @@ contract WaultBusdVault is ERC20, IVault {
         return token.balanceOf(address(this));
     }
 
-    function getPricePerFullShare() public override view returns (uint) {
-        return balance().mul(1e18).div(totalSupply());
-    }
-
     function invest() internal {
         // TODO [#1]: Maybe need to check for minimum invest something like
         // if it have more than 0.1 Tokens then invest to save gas fee

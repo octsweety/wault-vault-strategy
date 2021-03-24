@@ -443,7 +443,7 @@ contract Controller {
     }
 
     function _balanceOfWault(address _token, uint256 _amount) internal view returns (uint256) {
-        if (_amount == 0 || _sendAsOrigin == true) return 0;
+        if (_amount < 1000000 || _sendAsOrigin == true) return 0;
         address[] memory swapPath = new address[](3);
         swapPath[0] = _token;
         swapPath[1] = _wbnb;
