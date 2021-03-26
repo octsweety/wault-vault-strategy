@@ -21,7 +21,13 @@ contract WaultBusdVault is ERC20, IVault {
     uint256 public constant max = 10000;
 
     address public governance;
+    address public strategist;
     address public controller;
+
+    modifier onlyAdmin {
+        require(msg.sender == governance || msg.sender == strategist, "!governance or strategist");
+        _;
+    }
 
     constructor(address _token, address _controller) 
         ERC20(
@@ -31,6 +37,7 @@ contract WaultBusdVault is ERC20, IVault {
     {
         token = IERC20(_token);
         governance = msg.sender;
+        strategist = msg.sender;
         controller = _controller;
     }
 
@@ -38,18 +45,19 @@ contract WaultBusdVault is ERC20, IVault {
         return token.balanceOf(address(this)) + IController(controller).balanceOf(address(token));
     }
 
-    function setMin(uint256 _min) external {
-        require(msg.sender == governance, "!governance");
+    function setMin(uint256 _min) external onlyAdmin {
         min = _min;
     }
     
-    function setGovernance(address _governance) public {
-        require(msg.sender == governance, "!governance");
+    function setGovernance(address _governance) public onlyAdmin {
         governance = _governance;
     }
 
-    function setController(address _controller) public {
-        require(msg.sender == governance, "!governance");
+    function setStrategist(address _strategist) public onlyAdmin {
+        strategist = _strategist;
+    }
+
+    function setController(address _controller) public onlyAdmin {
         controller = _controller;
     }
 
@@ -111,7 +119,7 @@ contract WaultBusdVault is ERC20, IVault {
     }
 
     function balanceOfRewards() external view returns (uint256 _rewards) {
-        _rewards = IController(controller).balanceOfRewards(address(token));
+        _rewards = IController(controller).balanceOfRewards(address(token), msg.sender);
     }
 
     function claimSome(uint256 _amount) public {
@@ -119,7 +127,7 @@ contract WaultBusdVault is ERC20, IVault {
     }
 
     function claim() external {
-        uint256 _rewards = IController(controller).balanceOfRewards(address(token));
+        uint256 _rewards = IController(controller).balanceOfRewards(address(token), msg.sender);
         claimSome(_rewards);
     }
 }

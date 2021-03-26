@@ -16,9 +16,9 @@ contract StrategyStorage {
     address public harvester;
     
     uint256 public _performanceFee = 450;
-    uint256 public _strategistReward = 50;
-    uint256 public _withdrawalFee = 50;
-    uint256 public _harvesterReward = 30;
+    uint256 public _strategistReward = 0;
+    uint256 public _withdrawalFee = 0;
+    uint256 public _harvesterReward = 0;
     uint256 internal _withdrawalMax = 10000;
     uint256 public constant FEE_DENOMINATOR = 10000;
     uint256 public blocksPerMin = 20;
@@ -88,8 +88,9 @@ contract StrategyStorage {
 
     function _sendToVaultWithFee(address underlying, uint amount) internal {
         uint256 _fee = getFee(amount);
-        IERC20(underlying).safeTransfer(IController(controller).rewards(), _fee);
-
+        if (_fee > 0) {
+            IERC20(underlying).safeTransfer(IController(controller).rewards(), _fee);
+        }
         _sendToVault(underlying, amount.sub(_fee));
     }
 
@@ -102,6 +103,8 @@ contract StrategyStorage {
         uint256 _fee = getFee(amount);
         require(recipient != address(0), "Not a vault!");
         IERC20(underlying).safeTransfer(recipient, amount.sub(_fee));
-        IERC20(underlying).safeTransfer(IController(controller).rewards(), _fee);
+        if (_fee > 0) {
+            IERC20(underlying).safeTransfer(IController(controller).rewards(), _fee);
+        }
     }
 }

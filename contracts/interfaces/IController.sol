@@ -16,7 +16,7 @@ interface IController {
 
     function strategies(address) external view returns (address);
 
-    function balanceOfRewards(address _token) external view returns (uint256 _rewards);
+    function balanceOfRewards(address _token, address _user) external view returns (uint256 _rewards);
 
     function claim(address _token, uint256 _amount) external;
 }

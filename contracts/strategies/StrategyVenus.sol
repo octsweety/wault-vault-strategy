@@ -121,7 +121,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
     function harvest(bool force) external override returns (uint256) {
         // require(msg.sender == strategist || msg.sender == governance, "!authorized");
         // It would be a cron daemon in backend
-        require(msg.sender == harvester, "!harvester");
+        // require(msg.sender == harvester, "!harvester");
         require(harvestFee < expectedHarvestRewards() || force == true, "harvest fee is too much than expected rewards");
 
         _claimXvs();
@@ -132,9 +132,9 @@ contract StrategyVenus is StrategyStorage, IStrategy {
             uint256 _fee = xvs.mul(_performanceFee).div(FEE_DENOMINATOR);
             uint256 _reward = xvs.mul(_strategistReward).div(FEE_DENOMINATOR);
             harvesterReward = xvs.mul(_harvesterReward).div(FEE_DENOMINATOR);
-            IERC20(_xvs).safeTransfer(IController(controller).rewards(), _fee);
-            IERC20(_xvs).safeTransfer(strategist, _reward);
-            IERC20(_xvs).safeTransfer(msg.sender, harvesterReward);
+            if (_fee > 0) IERC20(_xvs).safeTransfer(IController(controller).rewards(), _fee);
+            if (_reward > 0) IERC20(_xvs).safeTransfer(strategist, _reward);
+            if (harvesterReward > 0) IERC20(_xvs).safeTransfer(msg.sender, harvesterReward);
         }
 
         _convertRewardsToWant();
@@ -192,7 +192,9 @@ contract StrategyVenus is StrategyStorage, IStrategy {
         IERC20(_want).safeApprove(uniswapRouter, 0);
         IERC20(_want).safeApprove(uniswapRouter, amount.sub(_fee));
         _out = IUniswapRouter(uniswapRouter).swapExactTokensForTokens(amount.sub(_fee), uint256(0), swapPath, recipient, block.timestamp.add(1800))[2];
-        IERC20(_want).safeTransfer(IController(controller).rewards(), _fee);
+        if (_fee > 0) {
+            IERC20(_want).safeTransfer(IController(controller).rewards(), _fee);
+        }
     }
 
     function _withdrawSome(uint256 _amount) internal returns (uint256) {
@@ -220,10 +222,6 @@ contract StrategyVenus is StrategyStorage, IStrategy {
        require(VBep20Interface(_vToken).redeem(VBep20Interface(_vToken).balanceOf(address(this))) == 0, "_withdrawAll: redeem failed");
     }
 
-    function withdrawalFee() external override view returns (uint256) {
-        return _withdrawalFee;
-    }
-    
     function balanceOf() external override view returns (uint256) {
         return balanceOfUnderlying().add(balanceOfStakedUnderlying());
     }
@@ -248,6 +246,10 @@ contract StrategyVenus is StrategyStorage, IStrategy {
 
     function getWant() external override view returns (address) {
         return _want;
+    }
+
+    function withdrawalFee() external override view returns (uint256) {
+        return _withdrawalFee;
     }
 
     function disableClaimMode() external {
