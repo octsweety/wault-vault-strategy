@@ -26,6 +26,8 @@ const toEther = (val) => {
 }
 
 async function deploy() {
+    console.log((new Date()).toLocaleString());
+    
     const [deployer] = await ethers.getSigners();
     
     console.log(

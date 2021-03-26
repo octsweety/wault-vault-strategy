@@ -26,10 +26,12 @@ const parseEther = (val) => {
 }
 
 async function deploy() {
+    console.log((new Date()).toLocaleString());
+
     const [deployer] = await ethers.getSigners();
     
     console.log(
-        "Deploying contracts with the account:",
+        "Testing contracts with the account:",
         deployer.address
     );
 
@@ -178,9 +180,10 @@ async function deploy() {
         console.log("XVS Balance of strategist: ", (await xvs.balanceOf(deployer.address)).toString());
         console.log("XVS Balance of harvester: ", (await xvs.balanceOf(harvesterAddress)).toString());
         if ('FORCE HARVEST' && false) {
-            await strategyVenus.harvest(true, {gasLimit: 9500000});
+            await strategyVenus.harvest(true);
+            //await strategyVenus.harvest(true, {gasLimit: 9500000});
             sleep(2000, "Harvest...");
-            if ("SET HARVEST FEE" && false) {
+            if ("SET HARVEST FEE" && true) {
                 await strategyVenus.setHarvestFee(100, {gasLimit: 9500000});
                 sleep(2000, "Setting harvest fee... (100)");
                 await strategyVenus.harvest(false, {gasLimit: 9500000});
@@ -197,7 +200,7 @@ async function deploy() {
         }
     }
 
-    if ("TEST VAULT" && true) {
+    if ("TEST VAULT" && false) {
         console.log("------ TEST VAULT ------");
         console.log("waultBUSD address:", wBUSD.address);
         console.log("waultBUSD name: ", (await wBUSD.name()));
@@ -218,7 +221,7 @@ async function deploy() {
             console.log("balanceOfStakedUnderlying of strategy after deposit: ", (await strategyVenus.balanceOfStakedUnderlying()).toString());
             console.log("Available BUSD Balance of Vault: ", (await wBUSD.available()).toString());
         }
-        if ("DEPOSIT ALL" && false) {
+        if ("DEPOSIT ALL" && true) {
             await busd.approve(wBUSD.address, (await busd.balanceOf(deployer.address)));
             await wBUSD.depositAll({gasLimit: 9500000});
             sleep(2000, "deposit all");
@@ -289,7 +292,11 @@ async function deploy() {
             await controller.updateUsersRewardInfo(busd.address);
             sleep(2000);
         }
-        let userInfo = (await controller.userInfo(busd.address, deployer.address));
+        // const user = deployer.address;
+        //const user = '0x3ca77ad191e1181b7cc9b0f8a05d5aa3d20da075';
+        const user = '0xC627D743B1BfF30f853AE218396e6d47a4f34ceA';
+        //let userInfo = (await controller.userInfo(busd.address, user));
+        let userInfo = (await controller.userInfo(busd.address, user));
         //console.log("User reward info: ", userInfo);
         console.log("User reward info(shares): ", userInfo['_shares'].toString());
         console.log("User reward info(reward): ", userInfo['_reward'].toString());
@@ -299,7 +306,7 @@ async function deploy() {
         console.log("User reward info(lastSupplyRewardRate): ", userInfo['_lastSupplyRewardRate'].toString());
         console.log("User reward info(lastBorrowRewardRate): ", userInfo['_lastBorrowRewardRate'].toString());
         //console.log("User reward from Vault(reards): ", (await wBUSD.balanceOfRewards()).toString());
-        let rewardInfo = await controller.balanceOfUserRewards(busdAddress, deployer.address);
+        let rewardInfo = await controller.balanceOfUserRewards(busdAddress, user);
         console.log("balanceOfUserRewards(rewards): ", rewardInfo['_rewards'].toString());
         console.log("balanceOfUserRewards(waults): ", rewardInfo['_waults'].toString());
         if ("DIRECT WITHDRAW" && false) {
@@ -334,7 +341,7 @@ async function deploy() {
         }
         if ('WITHDRAW WAULT' && false) {
             console.log("Wault balance of deployer before withdraw: ", (await wault.balanceOf(deployer.address)).toString());
-            await controller.withdrawWault(parseEther('1.95'), {gasLimit: 9500000});
+            await controller.withdrawWault(parseEther('2.5'), {gasLimit: 9500000});
             console.log("Wault balance of deployer after withdraw: ", (await wault.balanceOf(deployer.address)).toString());
             console.log("Wault balance of controller after withdraw: ", (await controller.balanceOfWault()).toString());
         }

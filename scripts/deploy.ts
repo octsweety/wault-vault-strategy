@@ -20,6 +20,8 @@ const sleep = (milliseconds, msg='') => {
 }
 
 async function deploy() {
+    console.log((new Date()).toLocaleString());
+    
     const [deployer] = await ethers.getSigners();
     
     console.log(

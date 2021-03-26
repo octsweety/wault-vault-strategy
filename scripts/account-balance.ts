@@ -9,6 +9,8 @@ const toEther = (val) => {
 }
 
 async function deploy() {
+    console.log((new Date()).toLocaleString());
+
     const [deployer] = await ethers.getSigners();
     
     const mainnet = process.env.NETWORK == "mainnet" ? true : false;
@@ -25,13 +27,14 @@ async function deploy() {
     const busdBalance = await busd.balanceOf(deployer.address);
     console.log("BUSD balance(wei): ", busdBalance.toString());
     console.log("BUSD balance(ether): ", toEther(busdBalance));
-    // await busd.transfer('0x6e3adB8F0E5CeB42F416e1815A03d5FCB7Fbf3C5', ethers.utils.parseEther('20'));
+    //await busd.transfer('0xC627D743B1BfF30f853AE218396e6d47a4f34ceA', ethers.utils.parseEther('20'));
 
     if (mainnet) {
         const wault = erc20Factory.attach(waultAddress).connect(deployer);
         const waultBalance = await wault.balanceOf(deployer.address);
         console.log("Wault balance(wei): ", waultBalance.toString());
         console.log("Wault balance(ether): ", toEther(waultBalance));
+        //wault.transfer('0x1c28C7175333de53B49e792000aC00c4AB854BD8', ethers.utils.parseEther('2'));
     }
 }
 

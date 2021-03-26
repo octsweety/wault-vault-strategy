@@ -30,6 +30,8 @@ const parseEther = (val) => {
 }
 
 async function deploy() {
+    console.log((new Date()).toLocaleString());
+    
     const [deployer] = await ethers.getSigners();
     
     console.log(
@@ -83,9 +85,11 @@ async function deploy() {
         await strategyVenus.disableRouter();
         console.log("Setting rewards to send as original BUSD...");
         await controller.setSendAsOrigin(true);
-        console.log("Setting minimum deposit amount to 5 BUSD...");
-        await vault.setMin(5);
+        console.log("Setting borrow limit...");
+        await strategyVenus.setTargetBorrowLimit(parseEther('0.79'), parseEther('0.01'));
     }
+    console.log("Setting minimum deposit amount to 5 BUSD...");
+    await vault.setMin(5);
     console.log("Initialized Contracts...");
     
     console.log("BUSD Vault address:", vault.address);
