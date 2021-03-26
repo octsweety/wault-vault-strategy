@@ -94,6 +94,22 @@ async function deploy() {
     console.log("Balance of Wault: ", (await controller.balanceOfWault()).toString());
     console.log("Balance of marketer rewards: ", (await controller.balanceOfMarketer(busdAddress)).toString());
     console.log("Balance of strategist rewards: ", (await controller.balanceOfStrategist(busdAddress)).toString());
+    if ("CHECK USER" && true) {
+        // const user = deployer.address;
+        //const user = '0x3ca77ad191e1181b7cc9b0f8a05d5aa3d20da075';
+        const user = '0xC627D743B1BfF30f853AE218396e6d47a4f34ceA';
+        console.log(`Check user rewards... (${user})`);
+        let userInfo = (await controller.userInfo(busd.address, user));
+        //console.log("User reward info: ", userInfo);
+        console.log("User reward info(shares): ", userInfo['_shares'].toString());
+        console.log("User reward info(reward): ", userInfo['_reward'].toString());
+        console.log("User reward info(lastBlock): ", userInfo['_lastRewardedBlock'].toString());
+        console.log("User reward info(lastSupplyRate): ", userInfo['_lastSupplyRate'].toString());
+        console.log("User reward info(lastBorrowRate): ", userInfo['_lastBorrowRate'].toString());
+        console.log("User reward info(lastSupplyRewardRate): ", userInfo['_lastSupplyRewardRate'].toString());
+        console.log("User reward info(lastBorrowRewardRate): ", userInfo['_lastBorrowRewardRate'].toString());
+        //console.log("User reward from Vault(reards): ", (await wBUSD.balanceOfRewards(deployer.address)).toString());
+    }
     const totalRewards = await controller.totalRewards(busdAddress);
     console.log("totalRewards(harvest): ", totalRewards['_harvestRewards'].toString());
     console.log("totalRewards(wault): ", totalRewards['_waultRewards'].toString());

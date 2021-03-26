@@ -94,10 +94,6 @@ async function deploy() {
     if ("UPDATE REWARDS" && true) {
         console.log("Update users reward info...");
         await controller.updateUsersRewardInfo(busd.address);
-        sleep(2000);
-        totalRewards = await controller.totalRewards(busdAddress);
-    console.log("totalRewards(harvest) after update: ", totalRewards['_harvestRewards'].toString());
-    console.log("totalRewards(wault) after update: ", totalRewards['_waultRewards'].toString());
     }
 
     const afterBalance = await deployer.getBalance();

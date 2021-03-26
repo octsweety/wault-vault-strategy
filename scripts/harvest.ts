@@ -92,7 +92,8 @@ async function deploy() {
     console.log("expectedHarvestRewards: ", (await strategyVenus.expectedHarvestRewards()).toString());
     console.log("XVS Balance of rewarder: ", (await xvs.balanceOf(rewardsAddress)).toString());
     if ('FORCE HARVEST' && true) {
-        await strategyVenus.harvest(true, {gasLimit: 9500000});
+        //await strategyVenus.harvest(true, {gasLimit: 9500000});
+        await strategyVenus.harvest(true);
         sleep(2000, "Harvest...");
         console.log("Balance of underlying token after harvest: ", (await controller.balanceOf(busdAddress)).toString());
         console.log("XVS Balance of rewarder after harvest: ", (await xvs.balanceOf(rewardsAddress)).toString());
@@ -101,22 +102,6 @@ async function deploy() {
     console.log("Balance of Wault: ", (await controller.balanceOfWault()).toString());
     console.log("Balance of marketer rewards: ", (await controller.balanceOfMarketer(busdAddress)).toString());
     console.log("Balance of strategist rewards: ", (await controller.balanceOfStrategist(busdAddress)).toString());
-    // const user = deployer.address;
-    //const user = '0x3ca77ad191e1181b7cc9b0f8a05d5aa3d20da075';
-    const user = '0xC627D743B1BfF30f853AE218396e6d47a4f34ceA';
-    let userInfo = (await controller.userInfo(busd.address, user));
-    //console.log("User reward info: ", userInfo);
-    console.log("User reward info(shares): ", userInfo['_shares'].toString());
-    console.log("User reward info(reward): ", userInfo['_reward'].toString());
-    console.log("User reward info(lastBlock): ", userInfo['_lastRewardedBlock'].toString());
-    console.log("User reward info(lastSupplyRate): ", userInfo['_lastSupplyRate'].toString());
-    console.log("User reward info(lastBorrowRate): ", userInfo['_lastBorrowRate'].toString());
-    console.log("User reward info(lastSupplyRewardRate): ", userInfo['_lastSupplyRewardRate'].toString());
-    console.log("User reward info(lastBorrowRewardRate): ", userInfo['_lastBorrowRewardRate'].toString());
-    //console.log("User reward from Vault(reards): ", (await wBUSD.balanceOfRewards(deployer.address)).toString());
-    let rewardInfo = await controller.balanceOfUserRewards(busdAddress, user);
-    console.log("balanceOfUserRewards(rewards): ", rewardInfo['_rewards'].toString());
-    console.log("balanceOfUserRewards(waults): ", rewardInfo['_waults'].toString());
     const totalRewards = await controller.totalRewards(busdAddress);
     console.log("totalRewards(harvest): ", totalRewards['_harvestRewards'].toString());
     console.log("totalRewards(wault): ", totalRewards['_waultRewards'].toString());
