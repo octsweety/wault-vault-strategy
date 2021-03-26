@@ -272,9 +272,6 @@ async function deploy() {
     if ("TEST CONTROLLER" && true) {
         console.log("------ TEST CONTROLLER ------");
         if (!mainnet) await controller.setSendAsOrigin(true);
-        console.log("busd vault address: ", (await controller.vaults(busd.address)).toString());
-        console.log("Period of withdraw lock: ", (await controller.withdrawLockPeriod()).toString());
-        console.log("Period of withdraw rewards lock: ", (await controller.withdrawRewardsLockPeriod()).toString());
         console.log("Balance of underlying token: ", (await controller.balanceOf(busdAddress)).toString());
         console.log("Balance of Wault: ", (await controller.balanceOfWault()).toString());
         console.log("Balance of marketer rewards: ", (await controller.balanceOfMarketer(busdAddress)).toString());
