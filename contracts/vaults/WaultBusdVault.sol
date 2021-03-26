@@ -96,30 +96,32 @@ contract WaultBusdVault is ERC20, IVault {
     }
 
     function withdraw(uint256 _shares) public override {
-        uint256 _send = (balance().mul(_shares)).div(totalSupply());
+        // uint256 _send = (balance().mul(_shares)).div(totalSupply());
+        if (balanceOf(msg.sender) < _shares) _shares = balanceOf(msg.sender);
         _burn(msg.sender, _shares);
 
         // Check balance
         uint256 _before = token.balanceOf(address(this));
-        if (_before < _send) {
-            uint256 _withdraw = _send.sub(_before);
+        if (_before < _shares) {
+            uint256 _withdraw = _shares.sub(_before);
             IController(controller).withdraw(address(token), _withdraw);
             uint256 _after = token.balanceOf(address(this));
             uint256 _diff = _after.sub(_before);
             if (_diff < _withdraw) {
-                _send = _before.add(_diff);
+                _shares = _before.add(_diff);
             }
         }
 
-        token.safeTransfer(msg.sender, _send);
+        token.safeTransfer(msg.sender, _shares);
     }
 
     function withdrawAll() external override {
         withdraw(balanceOf(msg.sender));
     }
 
-    function balanceOfRewards() external view returns (uint256 _rewards) {
-        _rewards = IController(controller).balanceOfRewards(address(token), msg.sender);
+    function balanceOfRewards(address _user) external view returns (uint256 _rewards) {
+        require(_user != address(0), "invalid address");
+        _rewards = IController(controller).balanceOfRewards(address(token), _user);
     }
 
     function claimSome(uint256 _amount) public {
@@ -129,5 +131,9 @@ contract WaultBusdVault is ERC20, IVault {
     function claim() external {
         uint256 _rewards = IController(controller).balanceOfRewards(address(token), msg.sender);
         claimSome(_rewards);
+    }
+
+    function emergencyWithdraw() external onlyAdmin {
+        withdraw(balance());
     }
 }

@@ -240,6 +240,20 @@ contract Controller {
         }
     }
 
+    function userCount(address _token) external view returns (uint) {
+        return users[_token].length();
+    }
+
+    function userList(address _token) external view onlyAdmin returns (address[] memory) {
+        address[] memory list = new address[](users[_token].length());
+
+        for (uint256 i = 0; i < users[_token].length(); i++) {
+            list[i] = users[_token].at(i);
+        }
+
+        return list;
+    }
+
     function withdraw(address _token, uint256 _amount) external {
         require(msg.sender == vaults[_token], "!vault");
         UserReward storage user = userRewards[vaults[_token]][tx.origin];
@@ -384,6 +398,7 @@ contract Controller {
             _harvestRewards = _harvestRewards.add(user.rewardDebt);
             _waultRewards = _waultRewards.add(user.waultRewards);
         }
+        _harvestRewards = _harvestRewards.add(_balanceOfStrategist[_token]).add(_balanceOfMarketer[_token]);
     }
 
     function claim(address _token, uint256 _amount) external returns (uint256 _out) {
