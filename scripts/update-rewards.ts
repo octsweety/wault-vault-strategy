@@ -85,6 +85,10 @@ async function deploy() {
     console.log('totalSupply: ', (await wBUSD.totalSupply()).toString());
     //console.log("userCount: ", (await controller.userCount(busdAddress)).toString());
     
+    console.log("currentWaultSupply: ", (await controller.currentWaultSupply()).toString());
+    console.log("startForDistributeWault: ", (await controller.startForDistributeWault()).toString());
+    console.log("endForDistributeWault: ", (await controller.endForDistributeWault()).toString());
+    console.log("lastDistributedBlock: ", (await controller.lastDistributedBlock()).toString());
     console.log("Balance of Wault: ", (await controller.balanceOfWault()).toString());
     console.log("Balance of marketer rewards: ", (await controller.balanceOfMarketer(busdAddress)).toString());
     console.log("Balance of strategist rewards: ", (await controller.balanceOfStrategist(busdAddress)).toString());

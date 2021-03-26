@@ -91,6 +91,10 @@ async function deploy() {
     console.log("expectedHarvestRewards: ", (await strategyVenus.expectedHarvestRewards()).toString());
     console.log("XVS Balance of rewarder: ", (await xvs.balanceOf(rewardsAddress)).toString());
 
+    console.log("currentWaultSupply: ", (await controller.currentWaultSupply()).toString());
+    console.log("startForDistributeWault: ", (await controller.startForDistributeWault()).toString());
+    console.log("endForDistributeWault: ", (await controller.endForDistributeWault()).toString());
+    console.log("lastDistributedBlock: ", (await controller.lastDistributedBlock()).toString());
     console.log("Balance of Wault: ", (await controller.balanceOfWault()).toString());
     console.log("Balance of marketer rewards: ", (await controller.balanceOfMarketer(busdAddress)).toString());
     console.log("Balance of strategist rewards: ", (await controller.balanceOfStrategist(busdAddress)).toString());
@@ -103,6 +107,7 @@ async function deploy() {
         //console.log("User reward info: ", userInfo);
         console.log("User reward info(shares): ", userInfo['_shares'].toString());
         console.log("User reward info(reward): ", userInfo['_reward'].toString());
+        console.log("User reward info(wault): ", userInfo['_waultReward'].toString());
         console.log("User reward info(lastBlock): ", userInfo['_lastRewardedBlock'].toString());
         console.log("User reward info(lastSupplyRate): ", userInfo['_lastSupplyRate'].toString());
         console.log("User reward info(lastBorrowRate): ", userInfo['_lastBorrowRate'].toString());

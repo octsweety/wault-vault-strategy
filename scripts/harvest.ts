@@ -92,8 +92,8 @@ async function deploy() {
     console.log("expectedHarvestRewards: ", (await strategyVenus.expectedHarvestRewards()).toString());
     console.log("XVS Balance of rewarder: ", (await xvs.balanceOf(rewardsAddress)).toString());
     if ('FORCE HARVEST' && true) {
-        //await strategyVenus.harvest(true, {gasLimit: 9500000});
-        await strategyVenus.harvest(true);
+        await strategyVenus.harvest(true, {gasLimit: 3500000});
+        //await strategyVenus.harvest(true);
         sleep(2000, "Harvest...");
         console.log("Balance of underlying token after harvest: ", (await controller.balanceOf(busdAddress)).toString());
         console.log("XVS Balance of rewarder after harvest: ", (await xvs.balanceOf(rewardsAddress)).toString());

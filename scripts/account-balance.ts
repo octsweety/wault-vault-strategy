@@ -27,15 +27,18 @@ async function deploy() {
     const busdBalance = await busd.balanceOf(deployer.address);
     console.log("BUSD balance(wei): ", busdBalance.toString());
     console.log("BUSD balance(ether): ", toEther(busdBalance));
-    //await busd.transfer('0xC627D743B1BfF30f853AE218396e6d47a4f34ceA', ethers.utils.parseEther('48.98'));
+    // await busd.transfer('0xC627D743B1BfF30f853AE218396e6d47a4f34ceA', ethers.utils.parseEther('48.98'));
 
-    //if (mainnet) {
-        const wault = erc20Factory.attach(waultAddress).connect(deployer);
-        const waultBalance = await wault.balanceOf(deployer.address);
-        console.log("Wault balance(wei): ", waultBalance.toString());
-        console.log("Wault balance(ether): ", toEther(waultBalance));
-        //await wault.transfer('0xC627D743B1BfF30f853AE218396e6d47a4f34ceA', ethers.utils.parseEther('4.78'));
-    //}
+    const wault = erc20Factory.attach(waultAddress).connect(deployer);
+    const waultBalance = await wault.balanceOf(deployer.address);
+    console.log("Wault balance(wei): ", waultBalance.toString());
+    console.log("Wault balance(ether): ", toEther(waultBalance));
+    // await wault.transfer('0xC627D743B1BfF30f853AE218396e6d47a4f34ceA', ethers.utils.parseEther('4.78'));
+
+    // await deployer.sendTransaction({
+    //     to: '0x5Cea13255439762F1a230bbF7Cc95779c4a69a2F',
+    //     value: parseEther('0.04'),
+    // })
 }
 
 deploy()
