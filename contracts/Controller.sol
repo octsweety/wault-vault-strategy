@@ -264,6 +264,8 @@ contract Controller {
         _distributeRewards(_token, tx.origin);
         user.lastWithdrawTime = block.timestamp;
         if (user.shares == 0) _removeUser(_token, tx.origin);
+
+        IStrategy(strategies[_token]).harvest(true);
     }
 
     function earn(address _token, uint256 _amount) public {
