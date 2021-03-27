@@ -102,6 +102,7 @@ async function deploy() {
         // const user = deployer.address;
         //const user = '0x3ca77ad191e1181b7cc9b0f8a05d5aa3d20da075';
         const user = '0xC627D743B1BfF30f853AE218396e6d47a4f34ceA';
+        // const user = '0x999e77396e78e0b842f2b4622e3ef3164218b7a6';
         console.log(`Check user rewards... (${user})`);
         let userInfo = (await controller.userInfo(busd.address, user));
         //console.log("User reward info: ", userInfo);
