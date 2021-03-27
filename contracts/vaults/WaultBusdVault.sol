@@ -98,6 +98,8 @@ contract WaultBusdVault is ERC20, IVault {
     function withdraw(uint256 _shares) public override {
         // uint256 _send = (balance().mul(_shares)).div(totalSupply());
         if (balanceOf(msg.sender) < _shares) _shares = balanceOf(msg.sender);
+        require(_shares > 0, "!available balance");
+
         _burn(msg.sender, _shares);
 
         // Check balance
