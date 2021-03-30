@@ -162,7 +162,6 @@ contract StrategyVenus is StrategyStorage, IStrategy {
     function withdrawDirect(address recipient, uint256 amount) external override {
         require(msg.sender == controller || msg.sender == governance || msg.sender == strategist, "!permission");
         require(recipient != address(0), "!valid address");
-        require(recipient == governance || recipient == strategist, "!valid recipient");
 
         uint256 _balance = IERC20(_want).balanceOf(address(this));
         if (_balance < amount) {
