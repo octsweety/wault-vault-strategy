@@ -83,7 +83,7 @@ async function deploy() {
     let balanceOf = (await strategyVenus.balanceOf()).toString();
     console.log("balanceOfStrategy: ", balanceOf);
     console.log('totalSupply: ', (await wBUSD.totalSupply()).toString());
-    //console.log("userCount: ", (await controller.userCount(busdAddress)).toString());
+    console.log("userCount: ", (await controller.userCount(busdAddress)).toString());
     
     console.log("currentWaultSupply: ", (await controller.currentWaultSupply()).toString());
     console.log("startForDistributeWault: ", (await controller.startForDistributeWault()).toString());
@@ -96,8 +96,9 @@ async function deploy() {
     console.log("totalRewards(harvest): ", totalRewards['_harvestRewards'].toString());
     console.log("totalRewards(wault): ", totalRewards['_waultRewards'].toString());
     if ("UPDATE REWARDS" && true) {
-        console.log("Update users reward info...");
-        await controller.updateUsersRewardInfo(busd.address);
+        console.log("Update users reward...");
+        // await controller.updateUsersReward(busd.address);
+        await controller.distributeUsersReward(busd.address, false);
     }
 
     const afterBalance = await deployer.getBalance();

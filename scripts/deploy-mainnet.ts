@@ -68,10 +68,6 @@ async function deploy() {
     }
     await strategyVenus.enterVenusMarket();
 
-    console.log("Setting withdraw lock period... (10 seconds)");
-    await controller.setWithdrawLockPeriod(10);
-    console.log("Setting withdraw rewards lock period... (10 seconds)");
-    await controller.setWithdrawRewardsLockPeriod(10);
     console.log("Setting address to send rewards from strategy...");
     await controller.setRewards(rewardsAddress);
     console.log("Setting vault address to controller...");
@@ -91,6 +87,11 @@ async function deploy() {
     console.log("Setting minimum deposit amount to 5 BUSD...");
     await vault.setMin(5);
     console.log("Initialized Contracts...");
+
+    // console.log("Setting strategist...");
+    // await controller.setGovernance(deployer.address);
+    // await vault.setGovernance(deployer.address);
+    // await strategyVenus.setGovernance(deployer.address);
     
     console.log("BUSD Vault address:", vault.address);
     console.log("StrategyVenus address:", strategyVenus.address);

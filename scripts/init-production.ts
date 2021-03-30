@@ -73,12 +73,12 @@ async function deploy() {
     await controller.setRewards(process.env.REWARDS_ADDR);
     console.log("Setting marketer address...");
     await controller.setMarketer(process.env.MARKETER_ADDR);
-    console.log("Setting harvester address...");
-    await strategyVenus.setHarvester(process.env.HARVESTER_ADDR);
-    console.log("Setting governance...");
-    await controller.setGovernance(process.env.GOVERNANCE_ADDR);
-    await vault.setGovernance(process.env.GOVERNANCE_ADDR);
-    await strategyVenus.setGovernance(process.env.GOVERNANCE_ADDR);
+    // console.log("Setting harvester address...");
+    // await strategyVenus.setHarvester(process.env.HARVESTER_ADDR);
+    // console.log("Setting governance...");
+    // await controller.setGovernance(deployer.address);
+    // await vault.setGovernance(deployer.address);
+    // await strategyVenus.setGovernance(deployer.address);
 
     console.log("Initialized Controller...");
     
