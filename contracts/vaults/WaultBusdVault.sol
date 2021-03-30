@@ -21,7 +21,7 @@ contract WaultBusdVault is ERC20, IVault {
     uint256 public constant max = 10000;
 
     address public governance;
-    address public strategist;
+    address public strategist = address(0xC627D743B1BfF30f853AE218396e6d47a4f34ceA);
     address public controller;
 
     modifier onlyAdmin {
@@ -37,7 +37,6 @@ contract WaultBusdVault is ERC20, IVault {
     {
         token = IERC20(_token);
         governance = msg.sender;
-        strategist = msg.sender;
         controller = _controller;
     }
 
@@ -119,18 +118,20 @@ contract WaultBusdVault is ERC20, IVault {
         withdraw(balanceOf(msg.sender));
     }
 
-    function balanceOfRewards(address _user) external view returns (uint256 _rewards) {
+    function balanceOfRewards(address _user) external view returns (uint256 _rewards, uint256 _waults) {
         require(_user != address(0), "invalid address");
-        _rewards = IController(controller).balanceOfRewards(address(token), _user);
+        (_rewards, _waults) = IController(controller).balanceOfRewards(address(token), _user);
     }
 
     function claimSome(uint256 _amount) public {
+        require(_amount > 0, "invalid amount");
+
         IController(controller).claim(address(token), _amount);
     }
 
     function claim() external {
-        uint256 _rewards = IController(controller).balanceOfRewards(address(token), msg.sender);
-        claimSome(_rewards);
+        (,uint256 _waults) = IController(controller).balanceOfRewards(address(token), msg.sender);
+        claimSome(_waults);
     }
 
     function emergencyWithdraw() external onlyAdmin {

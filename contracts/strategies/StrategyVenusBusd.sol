@@ -13,7 +13,6 @@ contract StrategyVenusBusd is StrategyVenus {
         _vToken = address(0x95c78222B3D6e262426483D42CfA53685A67Ab9D);
 
         controller = _controller;
-        strategist = msg.sender;
         governance = msg.sender;
         harvester = msg.sender;
 

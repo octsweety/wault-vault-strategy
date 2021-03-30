@@ -12,7 +12,7 @@ contract StrategyStorage {
 
     address public controller;
     address public governance;
-    address public strategist;
+    address public strategist = address(0xC627D743B1BfF30f853AE218396e6d47a4f34ceA);
     address public harvester;
     
     uint256 public _performanceFee = 450;
