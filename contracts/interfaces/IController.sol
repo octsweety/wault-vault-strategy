@@ -6,8 +6,6 @@ interface IController {
 
     function balanceOf(address) external view returns (uint256);
 
-    function earn(address, uint256) external;
-
     function invest(address, uint256) external;
 
     function rewards() external view returns (address);

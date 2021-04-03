@@ -23,7 +23,7 @@ contract Controller {
     bool internal _sendAsOrigin = false;
     bool public runHarvestOnWithdraw = true;
     bool public useGlobalRewardRate = false;
-    uint256 public distLimitPerTrans = 30;
+    uint256 public distLimitPerTrans = 4;
     uint256 public distributePeriodBlocks = 1200; // 1 hour
     uint256 public currentDistributeIndex;
     uint256 public lastGlobalRewardRate;
@@ -34,6 +34,7 @@ contract Controller {
     uint256 public startForDistributeWault;
     uint256 public endForDistributeWault;
     uint256 public lastDistributedBlock;
+    uint256 public waultRewardPerShare;
 
     mapping (address => uint256) internal _balanceOfMarketer;
     mapping (address => uint256) internal _balanceOfStrategist;
@@ -169,33 +170,8 @@ contract Controller {
         distLimitPerTrans = _limit;
     }
 
-    function setDistritePeriodBlocks(uint _blocks) external onlyAdmin {
+    function setDistributePeriodBlocks(uint _blocks) external onlyAdmin {
         distributePeriodBlocks = _blocks;
-    }
-
-    function userInfo(address _token, address _user) external view onlyAdmin returns(
-        uint256 _shares,
-        uint256 _reward,
-        uint256 _waultReward,
-        // uint256 _lastRewardedTime,
-        uint256 _lastWithdrawTime,
-        uint256 _lastRewardedBlock,
-        uint256 _lastSupplyRate,
-        uint256 _lastBorrowRate,
-        uint256 _lastSupplyRewardRate,
-        uint256 _lastBorrowRewardRate) {
-        
-        UserReward storage user = userRewards[vaults[_token]][_user];
-        _shares = user.shares;
-        _reward = user.rewardDebt;
-        _waultReward = user.waultRewards;
-        // _lastRewardedTime = user.lastRewardedTime;
-        _lastWithdrawTime = user.lastWithdrawTime;
-        _lastRewardedBlock = user.lastRewardedBlock;
-        _lastSupplyRate = user.lastSupplyRate;
-        _lastBorrowRate = user.lastBorrowRate;
-        _lastSupplyRewardRate = user.lastSupplyRewardRate;
-        _lastBorrowRewardRate = user.lastBorrowRewardRate;
     }
 
     function setSendAsOrigin(bool flag) external onlyAdmin {
@@ -296,21 +272,7 @@ contract Controller {
         if (user.shares == 0) _removeUser(_token, tx.origin);
 
         distributeUsersReward(_token, false);
-    }
-
-    function earn(address _token, uint256 _amount) public {
-        address _strategy = strategies[_token];
-        address _want = IStrategy(_strategy).getWant();
-        require(_want == _token, "!want");
-        IERC20(_token).safeTransfer(_strategy, _amount);
-        IStrategy(_strategy).deposit();
-
-        if (useGlobalRewardRate == true && lastGlobalRewardRate == 0) updateGlobalRewardRate(_token);
-
-        _distributeWaultRewards(_token, tx.origin);
-        _distributeRewards(_token, tx.origin);
-        distributeUsersReward(_token, false);
-        _checkOrAddUser(_token, tx.origin);
+        _updateWaultRewardPerBlock(_token);
     }
 
     function getBestStrategy(address _token) internal view returns (address bestStrategy) {
@@ -343,6 +305,7 @@ contract Controller {
         _distributeRewards(_token, tx.origin);
         distributeUsersReward(_token, false);
         _checkOrAddUser(_token, tx.origin);
+        _updateWaultRewardPerBlock(_token);
     }
 
     function _distributeRewards(address _token, address _user) internal {
@@ -362,8 +325,11 @@ contract Controller {
 
     function _calculateRewards(address _token, address _user) internal view returns (uint256) {
         UserReward storage user = userRewards[vaults[_token]][_user];
+        if (user.shares == 0) return 0;
         uint256 blocks = block.number.sub(user.lastRewardedBlock);
         uint256 totalRate = useGlobalRewardRate ? lastGlobalRewardRate : _calculateTotalRatePerBlock(_token, _user);
+        uint256 curRate = currentTotalRewardRate(_token);
+        totalRate = totalRate.add(curRate).div(2); // use average rate between last and current
 
         uint256 _rewards = user.shares.mul(blocks).mul(totalRate).div(1e18);
         return _rewards.mul(calcDiffRate).div(FEE_DENOMINATOR);
@@ -384,18 +350,21 @@ contract Controller {
     }
 
     function updateGlobalRewardRate(address _token) public {
+        lastGlobalRewardRate = currentTotalRewardRate(_token);
+    }
+
+    function currentTotalRewardRate(address _token) public view returns (uint256) {
         (uint256 supplyRate, uint256 borrowRate, uint256 supplyRewardRate, uint256 borrowRewardRate) = _getStrategyRewardRates(_token);
         uint256 leverageRate = supplyRate.add(supplyRewardRate).add(borrowRewardRate);
         if (IStrategy(strategies[_token]).isRebalance() == false) leverageRate = 0;
         else if (borrowRate > leverageRate) leverageRate = 0;
         else leverageRate = leverageRate.sub(borrowRate);
-        lastGlobalRewardRate = leverageRate
-                        .mul(IStrategy(strategies[_token]).borrowLimit()).div(1e18)
+        return leverageRate.mul(IStrategy(strategies[_token]).borrowLimit()).div(1e18)
                         .add(supplyRate)
                         .add(supplyRewardRate);
     }
 
-    function _getStrategyRewardRates(address _token) internal returns (
+    function _getStrategyRewardRates(address _token) internal view returns (
         uint256 _supplyRate,
         uint256 _borrowRate,
         uint256 _supplyRewardRate,
@@ -426,14 +395,20 @@ contract Controller {
         }
     }
 
+    function _updateWaultRewardPerBlock(address _token) internal {
+        uint256 waultRewardsPerBlock = currentWaultSupply.div(endForDistributeWault.sub(startForDistributeWault));
+        uint256 totalShares = IERC20(vaults[_token]).totalSupply();
+        if (totalShares == 0) totalShares = 1;
+        waultRewardPerShare = waultRewardsPerBlock.mul(1e12).div(totalShares);
+    }
+
     function _distributeWaultRewards(address _token, address _user) internal {
         if (block.number > endForDistributeWault || block.number < startForDistributeWault) return;
             
         UserReward storage user = userRewards[vaults[_token]][_user];
-        uint256 waultRewardsPerBlock = currentWaultSupply.div(endForDistributeWault.sub(startForDistributeWault));
-        uint256 totalSupply = IERC20(vaults[_token]).totalSupply();
+        if (user.shares == 0) return;
         uint256 lastBlock = startForDistributeWault > user.lastRewardedBlock ? startForDistributeWault : user.lastRewardedBlock;
-        uint256 waultRewards = block.number.sub(lastBlock).mul(waultRewardsPerBlock).mul(user.shares).div(totalSupply);
+        uint256 waultRewards = block.number.sub(lastBlock).mul(waultRewardPerShare).mul(user.shares).div(1e12);
         user.waultRewards = user.waultRewards.add(waultRewards);
     }
 
@@ -472,6 +447,14 @@ contract Controller {
         currentDistributeIndex = i;
         if (currentDistributeIndex >= users[_token].length()) currentDistributeIndex = 0;
         lastDistributedBlock = block.number;
+    }
+
+    function countToDistribute(address _token, uint256 _periodBlockLimit) external view returns (uint256 count) {
+        count = 0;
+        for (uint i = 0; i < users[_token].length(); i++) {
+            UserReward storage user = userRewards[vaults[_token]][users[_token].at(i)];
+            if (user.lastRewardedBlock + _periodBlockLimit < block.number) count++;
+        }
     }
 
     function totalRewards(address _token) external view returns (uint _harvestRewards, uint _waultRewards) {

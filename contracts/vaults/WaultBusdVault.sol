@@ -99,6 +99,9 @@ contract WaultBusdVault is ERC20, IVault {
 
         _burn(msg.sender, _shares);
 
+        uint256 _available = balance();
+        if (_available < _shares) _shares = _available;
+
         // Check balance
         uint256 _before = token.balanceOf(address(this));
         if (_before < _shares) {

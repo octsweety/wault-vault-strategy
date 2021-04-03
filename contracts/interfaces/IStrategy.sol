@@ -29,9 +29,9 @@ interface IStrategy {
 
     function borrowRatePerBlock() external view returns (uint256);
 
-    function supplyRewardRatePerBlock() external returns (uint256);
+    function supplyRewardRatePerBlock() external view returns (uint256);
     
-    function borrowRewardRatePerBlock() external returns (uint256);
+    function borrowRewardRatePerBlock() external view returns (uint256);
 
     function venusSpeeds() external view returns (uint256);
 
