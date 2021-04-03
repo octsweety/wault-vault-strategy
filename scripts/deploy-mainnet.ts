@@ -46,6 +46,7 @@ async function deploy() {
     const busdAddress = mainnet ? process.env.BUSD_MAIN : process.env.BUSD_TEST;
     const rewardsAddress = process.env.REWARDS_ADDR;
     const waultAddress = mainnet ? process.env.WAULT_MAIN : process.env.WAULT_TEST;
+    const url = mainnet ? process.env.URL_MAIN : process.env.URL_TEST;
     
     const erc20Factory = new ERC20__factory(deployer);
     const busd = erc20Factory.attach(busdAddress).connect(deployer);
@@ -74,9 +75,10 @@ async function deploy() {
     await controller.setVault(busdAddress, vault.address);
     console.log("Setting strategy address to controller...");
     await controller.setStrategy(busdAddress, strategyVenus.address);
-    console.log("Send 1000 Wault to controller...");
-    await wault.transfer(controller.address, parseEther('1000'));
+    
     if (!mainnet) {
+        console.log("Send 1000 Wault to controller...");
+        await wault.transfer(controller.address, parseEther('1000'));
         console.log("Disable router of strategy...");
         await strategyVenus.disableRouter();
         console.log("Setting rewards to send as original BUSD...");
@@ -84,8 +86,12 @@ async function deploy() {
         console.log("Setting borrow limit...");
         await strategyVenus.setTargetBorrowLimit(parseEther('0.79'), parseEther('0.01'));
     }
+    
     console.log("Setting minimum deposit amount to 5 BUSD...");
     await vault.setMin(5);
+    console.log("Setting Wault Reward Parameters...");
+    const block = await ethers.getDefaultProvider(url).getBlockNumber();
+    await controller.setWaultRewardsParams(parseEther('1000'), block, 864000);
     console.log("Initialized Contracts...");
 
     // console.log("Setting strategist...");

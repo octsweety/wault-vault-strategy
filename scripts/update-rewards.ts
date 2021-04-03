@@ -98,7 +98,7 @@ async function deploy() {
     if ("UPDATE REWARDS" && true) {
         console.log("Update users reward...");
         // await controller.updateUsersReward(busd.address);
-        await controller.distributeUsersReward(busd.address, false);
+        await controller.distributeUsersReward(busd.address, true);
     }
 
     const afterBalance = await deployer.getBalance();

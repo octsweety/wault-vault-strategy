@@ -16,6 +16,7 @@ async function deploy() {
     const mainnet = process.env.NETWORK == "mainnet" ? true : false;
     const busdAddress = mainnet ? process.env.BUSD_MAIN : process.env.BUSD_TEST;
     const waultAddress = mainnet ? process.env.WAULT_MAIN : process.env.WAULT_TEST;
+    const url = mainnet ? process.env.URL_MAIN : process.env.URL_TEST;
     
     console.log("Account: ", deployer.address);
     const balance = await deployer.getBalance();
@@ -39,6 +40,9 @@ async function deploy() {
     //     to: '0x5Cea13255439762F1a230bbF7Cc95779c4a69a2F',
     //     value: parseEther('0.04'),
     // })
+
+    const block = await ethers.getDefaultProvider(url).getBlockNumber();
+    console.log("Block number: ", block);
 }
 
 deploy()

@@ -48,6 +48,7 @@ async function deploy() {
     const controllerAddress = mainnet ? process.env.CONTROLLER_MAIN : process.env.CONTROLLER_TEST;
     const vaultAddress = mainnet ? process.env.VAULT_MAIN : process.env.VAULT_TEST;
     const strategyAddress = mainnet ? process.env.STRATEGY_MAIN : process.env.STRATEGY_TEST;
+    const url = mainnet ? process.env.URL_MAIN : process.env.URL_TEST;
     
     const controllerFactory: Controller__factory = new Controller__factory(deployer);
     const WaultBusdVaultFactory: WaultBusdVault__factory = new WaultBusdVault__factory(deployer);
@@ -66,8 +67,13 @@ async function deploy() {
     console.log("Setting strategy address to controller...");
     await controller.setStrategy(busdAddress, strategyVenus.address);
 
-    console.log("Entering to Venus market...");
-    await strategyVenus.enterVenusMarket();
+    if ("temp" && true) {
+        await vault.setController(controller.address);
+        await strategyVenus.setController(controller.address);
+    }
+
+    // console.log("Entering to Venus market...");
+    // await strategyVenus.enterVenusMarket();
     
     console.log("Setting address to send rewards from strategy...");
     await controller.setRewards(process.env.REWARDS_ADDR);
@@ -79,6 +85,11 @@ async function deploy() {
     // await controller.setGovernance(deployer.address);
     // await vault.setGovernance(deployer.address);
     // await strategyVenus.setGovernance(deployer.address);
+
+    console.log("Setting Wault Reward Parameters...");
+    const block = await ethers.getDefaultProvider(url).getBlockNumber();
+    await controller.setWaultRewardsParams(parseEther('1000'), block, 864000);
+    await controller.setDistributePeriodBlocks(0);
 
     console.log("Initialized Controller...");
     
