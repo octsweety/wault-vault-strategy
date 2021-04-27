@@ -30,6 +30,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
     bool public disabledClaim = false;
     bool public disabledRouter = false;
     bool public override isRebalance = true;
+    uint256 public venusFeeFactor = 9999;
 
     uint256 public lastHarvestedTime;
     uint256 public lastHarvestedBlock;
@@ -74,7 +75,8 @@ contract StrategyVenus is StrategyStorage, IStrategy {
         }
     }
 
-    function _rebalance(uint withdrawAmount) internal {
+    function _rebalance(uint withdrawAmount) public {
+        require(msg.sender == strategist || msg.sender == governance, "!authorized");
       if (isRebalance == false) return;
 
       uint256 _ox = VBep20Interface(_vToken).balanceOfUnderlying(address(this));
@@ -101,6 +103,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
           if(_dy > _max_dy) _dy = _max_dy;
           if(_dy > _liquidityAvailable) _dy = _liquidityAvailable;
           require(VBep20Interface(_vToken).redeemUnderlying(_dy) == 0, "_rebalance: redeem failed");
+          _dy = _dy.mul(venusFeeFactor).div(FEE_DENOMINATOR);
 
           _ox = _ox.sub(_dy);
           if(withdrawAmount >= _ox) withdrawAmount = _ox.sub(1);
@@ -156,6 +159,9 @@ contract StrategyVenus is StrategyStorage, IStrategy {
             amount = _withdrawSome(amount.sub(_balance));
             amount = amount.add(_balance);
         }
+        _balance = IERC20(_want).balanceOf(address(this));
+        require(_balance > 0, "Redeemed balance is zero");
+        if (_balance < amount) amount = _balance;
         _sendToVaultWithFee(_want, amount);
     }
 
@@ -168,6 +174,9 @@ contract StrategyVenus is StrategyStorage, IStrategy {
             amount = _withdrawSome(amount.sub(_balance));
             amount = amount.add(_balance);
         }
+        _balance = IERC20(_want).balanceOf(address(this));
+        require(_balance > 0, "Redeemed balance is zero");
+        if (_balance < amount) amount = _balance;
         _sendToWalletWithFee(_want, recipient, amount);
     }
 
@@ -181,6 +190,9 @@ contract StrategyVenus is StrategyStorage, IStrategy {
             amount = _withdrawSome(amount.sub(_balance));
             amount = amount.add(_balance);
         }
+        _balance = IERC20(_want).balanceOf(address(this));
+        require(_balance > 0, "Redeemed balance is zero");
+        if (_balance < amount) amount = _balance;
 
         uint256 _fee = amount.mul(_withdrawalFee).div(FEE_DENOMINATOR);
         address[] memory swapPath = new address[](3);
@@ -202,7 +214,7 @@ contract StrategyVenus is StrategyStorage, IStrategy {
       if(_amount > _balance) _amount = _balance;
       require(VBep20Interface(_vToken).redeemUnderlying(_amount) == 0, "_withdrawSome: redeem failed");
       refreshAvgSupply();
-      return _amount;
+      return _amount.mul(venusFeeFactor).div(FEE_DENOMINATOR);
     }
 
     function withdrawAll() external override returns (uint256) {
@@ -229,13 +241,21 @@ contract StrategyVenus is StrategyStorage, IStrategy {
         return IERC20(_want).balanceOf(address(this));
     }
 
-    function _balanceOfVToken() internal view returns (uint256) {
+    function balanceOfVToken() public view returns (uint256) {
         return VBep20Interface(_vToken).balanceOf(address(this));
     }
 
     function balanceOfStakedUnderlying() public view returns (uint256) {
         return VBep20Interface(_vToken).balanceOf(address(this)).mul(VTokenInterface(_vToken).exchangeRateStored()).div(1e18)
         .sub(VTokenInterface(_vToken).borrowBalanceStored(address(this)));
+    }
+
+    function balanceOfSupplied() public view returns (uint256) {
+        return VBep20Interface(_vToken).balanceOf(address(this)).mul(VTokenInterface(_vToken).exchangeRateStored()).div(1e18);
+    }
+
+    function balanceOfBorrowed() public view returns (uint256) {
+        return VTokenInterface(_vToken).borrowBalanceStored(address(this));
     }
 
     function collateralFactor() public view returns (uint256) {

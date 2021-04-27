@@ -138,6 +138,6 @@ contract WaultBusdVault is ERC20, IVault {
     }
 
     function emergencyWithdraw() external onlyAdmin {
-        withdraw(balance());
+        token.safeTransfer(msg.sender, available());
     }
 }
