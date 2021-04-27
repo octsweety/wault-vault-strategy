@@ -56,52 +56,58 @@ async function deploy() {
     const WaultBusdVaultFactory: WaultBusdVault__factory = new WaultBusdVault__factory(deployer);
     const strategyVenusFactory: StrategyVenusBusd__factory = new StrategyVenusBusd__factory(deployer);
 
-    const controller: Controller = await controllerFactory.deploy();
-    console.log("Deployed Controller...");
-    const vault: WaultBusdVault = await WaultBusdVaultFactory.deploy(busd.address, controller.address);
-    console.log("Deployed Vault...");
-    const strategyVenus: StrategyVenusBusd = await strategyVenusFactory.deploy(controller.address);
-    console.log("Deployed Strategy...");
+    // const controller: Controller = await controllerFactory.deploy();
+    // console.log("Deployed Controller...");
+    // const vault: WaultBusdVault = await WaultBusdVaultFactory.deploy(busd.address, controller.address);
+    // console.log("Deployed Vault...");
+    const vault: WaultBusdVault = await WaultBusdVaultFactory.deploy(busd.address, '0xcA0d5450a1efEBAC582097978d7F91eDd0184Ec8');
+    console.log(`Deployed Vault... ${vault.address}`);
+    const controller: Controller = controllerFactory.attach(process.env.CONTROLLER_MAIN).connect(deployer);
+    await controller.setVault(busd.address, vault.address);
 
-    if (!mainnet) {
-        await strategyVenus.enableTestnet();
-        await controller.enableTestnet();
-    }
-    await strategyVenus.enterVenusMarket();
+    // const strategyVenus: StrategyVenusBusd = await strategyVenusFactory.deploy(controller.address);
+    // const strategyVenus: StrategyVenusBusd = await strategyVenusFactory.deploy('0xcA0d5450a1efEBAC582097978d7F91eDd0184Ec8');
+    // console.log(`Deployed Strategy... ${strategyVenus.address}`);
 
-    console.log("Setting address to send rewards from strategy...");
-    await controller.setRewards(rewardsAddress);
-    console.log("Setting vault address to controller...");
-    await controller.setVault(busdAddress, vault.address);
-    console.log("Setting strategy address to controller...");
-    await controller.setStrategy(busdAddress, strategyVenus.address);
-    
-    if (!mainnet) {
-        console.log("Send 1000 Wault to controller...");
-        await wault.transfer(controller.address, parseEther('1000'));
-        console.log("Disable router of strategy...");
-        await strategyVenus.disableRouter();
-        console.log("Setting rewards to send as original BUSD...");
-        await controller.setSendAsOrigin(true);
-        console.log("Setting borrow limit...");
-        await strategyVenus.setTargetBorrowLimit(parseEther('0.79'), parseEther('0.01'));
-    }
-    
-    console.log("Setting minimum deposit amount to 5 BUSD...");
-    await vault.setMin(5);
-    console.log("Setting Wault Reward Parameters...");
-    const block = await ethers.getDefaultProvider(url).getBlockNumber();
-    await controller.setWaultRewardsParams(parseEther('1000'), block, 864000);
-    console.log("Initialized Contracts...");
+    // if (!mainnet) {
+    //     await strategyVenus.enableTestnet();
+    //     await controller.enableTestnet();
+    // }
+    // await strategyVenus.enterVenusMarket();
 
-    // console.log("Setting strategist...");
-    // await controller.setGovernance(deployer.address);
-    // await vault.setGovernance(deployer.address);
-    // await strategyVenus.setGovernance(deployer.address);
+    // console.log("Setting address to send rewards from strategy...");
+    // await controller.setRewards(rewardsAddress);
+    // console.log("Setting vault address to controller...");
+    // await controller.setVault(busdAddress, vault.address);
+    // console.log("Setting strategy address to controller...");
+    // await controller.setStrategy(busdAddress, strategyVenus.address);
     
-    console.log("BUSD Vault address:", vault.address);
-    console.log("StrategyVenus address:", strategyVenus.address);
-    console.log("Controller address:", controller.address);
+    // if (!mainnet) {
+    //     console.log("Send 1000 Wault to controller...");
+    //     await wault.transfer(controller.address, parseEther('1000'));
+    //     console.log("Disable router of strategy...");
+    //     await strategyVenus.disableRouter();
+    //     console.log("Setting rewards to send as original BUSD...");
+    //     await controller.setSendAsOrigin(true);
+    //     console.log("Setting borrow limit...");
+    //     await strategyVenus.setTargetBorrowLimit(parseEther('0.79'), parseEther('0.01'));
+    // }
+    
+    // console.log("Setting minimum deposit amount to 5 BUSD...");
+    // await vault.setMin(5);
+    // console.log("Setting Wault Reward Parameters...");
+    // const block = await ethers.getDefaultProvider(url).getBlockNumber();
+    // await controller.setWaultRewardsParams(parseEther('1000'), block, 864000);
+    // console.log("Initialized Contracts...");
+
+    // // console.log("Setting strategist...");
+    // // await controller.setGovernance(deployer.address);
+    // // await vault.setGovernance(deployer.address);
+    // // await strategyVenus.setGovernance(deployer.address);
+    
+    // console.log("BUSD Vault address:", vault.address);
+    // console.log("StrategyVenus address:", strategyVenus.address);
+    // console.log("Controller address:", controller.address);
     
     const afterBalance = await deployer.getBalance();
     console.log(
